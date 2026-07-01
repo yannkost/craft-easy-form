@@ -1,0 +1,36 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, 'feature/**']
+  pull_request:
+
+jobs:
+  unit:
+    name: Unit tests (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, mbstring, xml, xmlwriter, ctype, tokenizer, json, libxml
+          coverage: none
+          tools: composer
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish --no-check-all
+
+      - name: Lint source
+        run: find src -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Download PHPUnit
+        run: curl -sSL -o phpunit.phar https://phar.phpunit.de/phpunit-11.phar
+
+      - name: Run unit tests
+        run: php phpunit.phar --colors=never

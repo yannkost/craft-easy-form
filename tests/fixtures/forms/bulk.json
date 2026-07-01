@@ -1,0 +1,70 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Bulk",
+    "handle": "e2eBulk",
+    "description": "Mid-sized form used by the high-volume export / submissions e2e tests.",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "fh", "type": "heading", "label": "Your details", "handle": "detailsHeading", "headingLevel": "h3" }
+              ]
+            },
+            {
+              "id": "row_2",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true }
+              ]
+            },
+            {
+              "id": "row_3",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f3", "type": "tel", "label": "Phone", "handle": "phone", "required": false },
+                { "id": "f4", "type": "url", "label": "Website", "handle": "website", "required": false }
+              ]
+            },
+            {
+              "id": "row_4",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f5", "type": "select", "label": "Department", "handle": "department", "options": "support:Support\nsales:Sales\nbilling:Billing" },
+                { "id": "f6", "type": "number", "label": "Rating", "handle": "rating", "min": 1, "max": 5 },
+                { "id": "f7", "type": "date", "label": "Preferred date", "handle": "preferredDate" }
+              ]
+            },
+            {
+              "id": "row_5",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f8", "type": "checkboxes", "label": "Topics", "handle": "topics", "multiple": true, "options": "news:News\nproduct:Product\nevents:Events" }
+              ]
+            },
+            {
+              "id": "row_6",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f9", "type": "textarea", "label": "Message", "handle": "message", "required": false }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

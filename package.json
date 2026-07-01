@@ -1,0 +1,13 @@
+{
+  "name": "craft-easy-form-e2e",
+  "private": true,
+  "scripts": {
+    "e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^25.9.1",
+    "typescript": "^5.6.0"
+  }
+}

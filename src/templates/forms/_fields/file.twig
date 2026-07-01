@@ -1,0 +1,49 @@
+{% set allowMultiple = field.allowMultiple|default(false) %}
+{% set isMultiple = allowMultiple == '1' or allowMultiple == 1 or allowMultiple == true %}
+
+{% set siteH = currentSite.handle %}
+{% set perFileSize = field.maxFileSize|default(craft.easyForm.settings.maxFileSize) %}
+{% set totalSize = field.maxTotalSize|default(craft.easyForm.settings.maxTotalUploadSize ?? 0) %}
+{% set maxFiles = isMultiple ? field.maxFiles|default(0) : 0 %}
+
+{# Hint label templates: per-site editable strings with {n}/{types} placeholders and built-in defaults. #}
+{% set hintPerFile = (field.siteFileHintPerFile[siteH] ?? null) ?: 'Max size: {n} MB'|t('easy-form') %}
+{% set hintTotal   = (field.siteFileHintTotal[siteH]   ?? null) ?: 'Max total: {n} MB'|t('easy-form') %}
+{% set hintCount   = (field.siteFileHintCount[siteH]   ?? null) ?: 'Up to {n} files'|t('easy-form') %}
+{% set hintTypes   = (field.siteFileHintTypes[siteH]   ?? null) ?: 'Allowed types: {types}'|t('easy-form') %}
+{% set hintPrompt  = (field.siteFileHintPrompt[siteH]  ?? null) ?: 'Choose file(s)'|t('easy-form') %}
+
+{% set inputId = fieldInputId|default(field.fieldId|default('') ?: formId ~ '-' ~ field.handle) %}
+
+<div class="ef-file-field" data-ef-file-field>
+    <input
+        type="file"
+        id="{{ inputId }}"
+        name="fields[{{ field.handle }}]{{ isMultiple ? '[]' : '' }}"
+        class="ef-file-input ef-visually-hidden"
+        {% if field.required|default(false) %}required{% endif %}
+        {% if field.siteRequiredMessages[currentSite.handle] ?? null %}data-required-message="{{ field.siteRequiredMessages[currentSite.handle] }}"{% endif %}
+        {% if field.siteFileSizeMessages[currentSite.handle] ?? null %}data-file-size-message="{{ field.siteFileSizeMessages[currentSite.handle] }}"{% endif %}
+        {% if isMultiple %}multiple{% endif %}
+        {% if field.allowedFileTypes|default('') %}accept=".{{ field.allowedFileTypes|replace(',', ',.') }}"{% endif %}
+        data-field-type="file"
+        data-max-file-size="{{ perFileSize }}"
+        {% if totalSize > 0 %}data-max-total-size="{{ totalSize }}"{% endif %}
+        {% if maxFiles > 0 %}data-max-files="{{ maxFiles }}"{% endif %}
+        {% if fieldHelp|default('') %}aria-describedby="{{ fieldInputId }}-help"{% endif %}
+    >
+    <label for="{{ inputId }}" class="ef-file-trigger">{{ hintPrompt }}</label>
+    <ul class="ef-file-list" data-ef-file-list hidden></ul>
+    <small class="file-upload-hint">
+        {{ hintPerFile|replace({'{n}': perFileSize}) }}
+        {% if totalSize > 0 %}
+            | {{ hintTotal|replace({'{n}': totalSize}) }}
+        {% endif %}
+        {% if maxFiles > 0 %}
+            | {{ hintCount|replace({'{n}': maxFiles}) }}
+        {% endif %}
+        {% if field.allowedFileTypes|default('') %}
+            | {{ hintTypes|replace({'{types}': field.allowedFileTypes}) }}
+        {% endif %}
+    </small>
+</div>

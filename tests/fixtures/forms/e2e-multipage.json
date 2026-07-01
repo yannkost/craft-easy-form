@@ -1,0 +1,99 @@
+{
+  "easyForm": {
+    "type": "form",
+    "version": 1
+  },
+  "form": {
+    "name": "E2E Multipage",
+    "handle": "e2eMultipage",
+    "description": "Two-page form with a conditional field, used by the e2e suite.",
+    "showStepIndicator": true,
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "About you",
+          "rows": [
+            {
+              "id": "r1",
+              "stackOnMobile": true,
+              "fields": [
+                {
+                  "id": "f1",
+                  "type": "text",
+                  "label": "Name",
+                  "handle": "name",
+                  "required": true
+                },
+                {
+                  "id": "f2",
+                  "type": "select",
+                  "label": "Type",
+                  "handle": "type",
+                  "options": "personal:Personal\nbusiness:Business"
+                }
+              ]
+            }
+          ],
+          "nextLabel": "Continue",
+          "siteNextLabels": {
+            "french": "Continuer"
+          }
+        },
+        {
+          "id": "page_2",
+          "label": "Details",
+          "rows": [
+            {
+              "id": "r2",
+              "stackOnMobile": true,
+              "fields": [
+                {
+                  "id": "f3",
+                  "type": "text",
+                  "label": "Company",
+                  "handle": "company",
+                  "conditions": {
+                    "action": "show",
+                    "logic": "all",
+                    "rules": [
+                      {
+                        "field": "type",
+                        "operator": "equals",
+                        "value": "business"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "f4",
+                  "type": "email",
+                  "label": "Email",
+                  "handle": "email",
+                  "required": true
+                }
+              ]
+            }
+          ],
+          "prevLabel": "Go back",
+          "sitePrevLabels": {
+            "french": "Retour"
+          }
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": {
+        "primaryEmail": "email",
+        "searchCol1": "name"
+      }
+    },
+    "enabled": true,
+    "captchaProvider": null,
+    "submitButtonLabel": "Send it",
+    "siteSubmitButtonLabels": {
+      "french": "Envoyer"
+    }
+  }
+}

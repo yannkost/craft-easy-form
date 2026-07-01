@@ -1,0 +1,133 @@
+{% extends '_layouts/cp' %}
+
+{% set title = 'Saved exports'|t('easy-form') %}
+{% set fmt = craft.app.formatter %}
+
+{% block actionButton %}
+    <a href="{{ url('easy-form/exports') }}" class="btn" data-icon="download">{{ 'New export'|t('easy-form') }}</a>
+{% endblock %}
+
+{% block content %}
+<div class="ef-saved">
+
+    <p class="ef-saved-intro light">{{ 'Exports you chose to keep. They stay here until deleted.'|t('easy-form') }}</p>
+
+    {% if exports|length %}
+        <div class="ef-table-wrap">
+            <table class="ef-table">
+                <thead>
+                    <tr>
+                        <th>{{ 'Form'|t('easy-form') }}</th>
+                        <th>{{ 'Filters'|t('easy-form') }}</th>
+                        <th>{{ 'Rows'|t('easy-form') }}</th>
+                        <th>{{ 'Size'|t('easy-form') }}</th>
+                        <th>{{ 'Exported by'|t('easy-form') }}</th>
+                        <th>{{ 'Created'|t('easy-form') }}</th>
+                        <th class="ef-col-actions" aria-hidden="true"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in exports %}
+                        {% set f = e.filters %}
+                        {% set bits = [] %}
+                        {% if f.status %}{% set bits = bits|merge([f.status|capitalize]) %}{% endif %}
+                        {% if f.search %}{% set bits = bits|merge(['“' ~ f.search ~ '”']) %}{% endif %}
+                        {% if f.dateFrom or f.dateTo %}{% set bits = bits|merge([(f.dateFrom ?: '…') ~ ' – ' ~ (f.dateTo ?: '…')]) %}{% endif %}
+                        {% if f.columns %}{% set bits = bits|merge(['{n} col(s)'|t('easy-form', { n: f.columns|length })]) %}{% endif %}
+                        <tr data-token="{{ e.token }}" data-name="{{ e.filename }}">
+                            <td class="ef-cell-form">
+                                {% if e.formId %}
+                                    <a href="{{ cpUrl('easy-form/forms/' ~ e.formId) }}" class="ef-form-name">{{ e.formName }}</a>
+                                {% else %}
+                                    <span class="ef-form-name ef-form-name--deleted">{{ e.formName ?? 'Form'|t('easy-form') }}</span>
+                                {% endif %}
+                                <span class="ef-file">{{ e.filename }}</span>
+                            </td>
+                            <td class="ef-cell-filters">{{ bits|length ? bits|join(' · ') : ('All submissions'|t('easy-form')) }}</td>
+                            <td>{{ e.rowCount is not null ? e.rowCount : '—' }}</td>
+                            <td>{{ e.fileSize ? fmt.asShortSize(e.fileSize) : '—' }}</td>
+                            <td>{{ e.createdBy ?? '—' }}</td>
+                            <td class="ef-cell-when">
+                                <span class="ef-rel">{{ fmt.asRelativeTime(e.dateCreated) }}</span>
+                                <span class="ef-abs">{{ e.dateCreated|date('j M Y, H:i') }}</span>
+                            </td>
+                            <td class="ef-col-actions">
+                                <div class="ef-row-actions">
+                                    {% if e.status == 'ready' %}
+                                        <a href="{{ cpUrl('easy-form/exports/download', { key: e.token }) }}" class="ef-row-btn" title="{{ 'Download'|t('easy-form') }}" data-icon="download"></a>
+                                    {% elseif e.status == 'failed' %}
+                                        <span class="ef-pill spam"><i class="ef-dot"></i>{{ 'Failed'|t('easy-form') }}</span>
+                                    {% else %}
+                                        <span class="ef-pill archived"><i class="ef-dot"></i>{{ 'Preparing…'|t('easy-form') }}</span>
+                                    {% endif %}
+                                    <button type="button" class="ef-row-btn ef-delete" title="{{ 'Delete'|t('app') }}" data-icon="trash"></button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% include 'easy-form/_pager.twig' %}
+    {% else %}
+        <div class="ef-empty-state">
+            <span class="ef-empty-icon" data-icon="folder" aria-hidden="true"></span>
+            <p class="ef-empty-title">{{ 'No saved exports yet.'|t('easy-form') }}</p>
+            <p class="light">{{ 'Tick “Save a copy on the server” when you export and it will show up here.'|t('easy-form') }}</p>
+            <a href="{{ url('easy-form/exports') }}" class="btn submit">{{ 'New export'|t('easy-form') }}</a>
+        </div>
+    {% endif %}
+</div>
+
+{% js %}
+(function () {
+    document.querySelectorAll('.ef-saved .ef-delete').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var row = btn.closest('tr');
+            var name = row.getAttribute('data-name');
+            if (!confirm(Craft.t('easy-form', 'Delete “{name}”? This removes the file from the server.', { name: name }))) return;
+            btn.disabled = true;
+            Craft.sendActionRequest('POST', 'easy-form/exports/delete-saved', { data: { token: row.getAttribute('data-token') } })
+                .then(function () {
+                    row.remove();
+                    Craft.cp.displayNotice(Craft.t('easy-form', 'Saved export deleted.'));
+                    if (!document.querySelector('.ef-saved .ef-table tbody tr')) { location.reload(); }
+                })
+                .catch(function () {
+                    btn.disabled = false;
+                    Craft.cp.displayError(Craft.t('easy-form', 'Could not delete the export.'));
+                });
+        });
+    });
+})();
+{% endjs %}
+
+{% css %}
+#content.content-pane:has(.ef-saved) { background: transparent; box-shadow: none; padding: 0; border: 0; border-radius: 0; }
+.ef-saved-intro { margin: 0 0 18px; }
+.ef-saved .ef-table-wrap { border: 1px solid #e3e8ef; border-radius: 16px; overflow: hidden; background: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 6px 16px rgba(16,24,40,.05); }
+.ef-saved .ef-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ef-saved .ef-table thead th { text-align: left; padding: 10px 16px; background: #f4f6f9; border-bottom: 1px solid #e3e8ef; color: #8893a2; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.ef-saved .ef-table tbody td { padding: 12px 16px; border-bottom: 1px solid #e3e8ef; vertical-align: middle; }
+.ef-saved .ef-table tbody tr:last-child td { border-bottom: 0; }
+.ef-form-name { display: block; color: #2160e6; font-weight: 600; }
+.ef-form-name--deleted { color: #5a6573; }
+.ef-file { display: block; margin-top: 2px; color: #8893a2; font-size: 12px; font-family: var(--monospace-font, ui-monospace, monospace); }
+.ef-cell-filters { color: #5a6573; max-width: 320px; }
+.ef-rel { display: block; color: #1d2530; }
+.ef-abs { display: block; margin-top: 2px; color: #8893a2; font-size: 12px; }
+.ef-col-actions { width: 96px; text-align: right; }
+.ef-row-actions { display: inline-flex; gap: 4px; align-items: center; justify-content: flex-end; }
+.ef-row-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 0; border-radius: 7px; background: transparent; color: #8893a2; cursor: pointer; }
+.ef-row-btn:hover { background: #eef1f6; color: #1d2530; }
+.ef-row-btn.ef-delete:hover { background: #fdeaea; color: #b32328; }
+.ef-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+.ef-pill .ef-dot { width: 6px; height: 6px; border-radius: 50%; }
+.ef-pill.archived { background: #eef1f6; color: #5a6573; } .ef-pill.archived .ef-dot { background: #9aa4b2; }
+.ef-pill.spam { background: #fdeaea; color: #b32328; } .ef-pill.spam .ef-dot { background: #d92d20; }
+.ef-empty-state { text-align: center; padding: 60px 20px; border: 1px dashed #e3e8ef; border-radius: 16px; background: #f9fafc; }
+.ef-empty-icon { font-size: 30px; color: #c4ccd8; }
+.ef-empty-title { margin: 12px 0 6px; color: #5a6573; font-size: 15px; }
+{% endcss %}
+{% endblock %}

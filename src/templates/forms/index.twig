@@ -1,0 +1,466 @@
+{% extends '_layouts/cp' %}
+
+{% set title = 'Forms'|t('easy-form') %}
+{% set fmt = craft.app.formatter %}
+{% set hasSearch = (search ?? '') != '' %}
+
+{% block actionButton %}
+    <div class="btngroup">
+        <button type="button" id="ef-import-btn" class="btn">{{ 'Import'|t('easy-form') }}</button>
+        <a href="{{ cpUrl('easy-form/forms/new') }}" class="btn submit add icon">{{ 'New form'|t('easy-form') }}</a>
+    </div>
+{% endblock %}
+
+{% block content %}
+<div class="ef-forms">
+
+    {# ── Import panel (toggled) ──────────────────────────────── #}
+    <div id="ef-import-panel" class="ef-import-panel" hidden>
+        <form method="post" enctype="multipart/form-data" action="{{ actionUrl('easy-form/forms/import') }}">
+            {{ csrfInput() }}
+            <h3>{{ 'Import a form'|t('easy-form') }}</h3>
+            <p class="light">{{ 'Upload a JSON file exported from Easy Form, or paste the definition below. A new form is created with a unique handle.'|t('easy-form') }}</p>
+            <input type="file" name="file" accept=".json,application/json" style="margin-bottom: 10px;">
+            <textarea name="definition" rows="5" class="text fullwidth code" placeholder='{"easyForm":{"type":"form"},"form":{ ... }}'></textarea>
+            <div class="buttons" style="margin-top: 10px; display: flex; gap: 10px;">
+                <button type="button" class="btn" id="ef-import-cancel">{{ 'Cancel'|t('app') }}</button>
+                <button type="submit" class="btn submit">{{ 'Import'|t('easy-form') }}</button>
+            </div>
+        </form>
+    </div>
+
+    {# ── Delete confirmation modal ───────────────────────────── #}
+    <div id="ef-delete-overlay" class="ef-modal-overlay" hidden>
+        <div class="ef-modal" role="dialog" aria-modal="true" aria-labelledby="ef-delete-title">
+            <h2 id="ef-delete-title">{{ 'Delete form'|t('easy-form') }}</h2>
+            <p id="ef-delete-lead"></p>
+
+            <div class="ef-modal-info" id="ef-delete-info">
+                <span class="ef-modal-info-icon" data-icon="info"></span>
+                <div id="ef-delete-info-text"></div>
+            </div>
+
+            <p id="ef-delete-export-wrap" hidden>
+                <a href="#" id="ef-delete-export" class="btn" target="_blank" rel="noopener">
+                    <span data-icon="download"></span> {{ 'Export submissions first'|t('easy-form') }}
+                </a>
+            </p>
+
+            <label class="ef-modal-check" id="ef-delete-cascade-wrap" hidden>
+                <input type="checkbox" id="ef-delete-cascade">
+                <span id="ef-delete-cascade-label"></span>
+            </label>
+
+            <div class="ef-modal-buttons">
+                <button type="button" class="btn" id="ef-delete-cancel">{{ 'Cancel'|t('app') }}</button>
+                <button type="button" class="btn submit ef-danger" id="ef-delete-confirm">{{ 'Delete'|t('app') }}</button>
+            </div>
+        </div>
+    </div>
+
+    {# ── Toolbar ─────────────────────────────────────────────── #}
+    <form method="get" action="{{ url('easy-form/forms') }}" id="ef-forms-filter" class="ef-toolbar">
+        <div class="ef-search">
+            <span class="ef-search-icon" data-icon="search" aria-hidden="true"></span>
+            <input type="text" name="search" value="{{ search ?? '' }}" autocomplete="off" placeholder="{{ 'Search forms…'|t('easy-form') }}">
+        </div>
+        {% if hasSearch %}<a class="ef-clear-link" href="{{ url('easy-form/forms') }}">{{ 'Clear'|t('easy-form') }}</a>{% endif %}
+        {% if (limit ?? 20) != 20 %}<input type="hidden" name="limit" value="{{ limit }}">{% endif %}
+    </form>
+
+    {% if forms|length %}
+        {# ── Bulk action bar ─────────────────────────────────── #}
+        <div class="ef-bulkbar" id="ef-bulkbar" hidden>
+            <span class="ef-bulk-count"><button type="button" class="ef-bulk-check" id="ef-bulk-clear" data-icon="check" title="{{ 'Clear selection'|t('easy-form') }}" aria-label="{{ 'Clear selection'|t('easy-form') }}"></button><strong id="ef-bulk-n">0</strong> {{ 'selected'|t('easy-form') }}</span>
+            <div class="ef-bulk-actions">
+                <button type="button" class="ef-bulk-btn" data-bulk="status" data-enabled="1"><i class="ef-dot approved"></i>{{ 'Enable'|t('easy-form') }}</button>
+                <button type="button" class="ef-bulk-btn" data-bulk="status" data-enabled="0">{{ 'Disable'|t('easy-form') }}</button>
+                <button type="button" class="ef-bulk-btn" data-bulk="export">{{ 'Export'|t('easy-form') }}</button>
+                <button type="button" class="ef-bulk-btn ef-danger" data-bulk="delete">{{ 'Delete'|t('app') }}</button>
+            </div>
+            <a href="#" class="ef-clear-selection" id="ef-clear-selection">{{ 'Clear selection'|t('easy-form') }}</a>
+        </div>
+
+        {# ── Table ───────────────────────────────────────────── #}
+        <div class="ef-table-wrap">
+            <table class="ef-table">
+                <thead>
+                    <tr>
+                        <th class="ef-col-check"><input type="checkbox" id="ef-select-all" aria-label="{{ 'Select all'|t('easy-form') }}"></th>
+                        <th>{{ 'Name'|t('easy-form') }}</th>
+                        <th>{{ 'Status'|t('easy-form') }}</th>
+                        <th>{{ 'Fields'|t('easy-form') }}</th>
+                        <th>{{ 'Submissions'|t('easy-form') }}</th>
+                        <th>{{ 'Created'|t('easy-form') }}</th>
+                        <th class="ef-col-actions" aria-hidden="true"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form in forms %}
+                        {% set editUrl = cpUrl('easy-form/forms/' ~ form.id) %}
+                        <tr data-id="{{ form.id }}" data-name="{{ form.name }}" data-handle="{{ form.handle }}" data-subs="{{ submissionCounts[form.id] ?? 0 }}" data-url="{{ editUrl }}">
+                            <td class="ef-col-check"><input type="checkbox" class="ef-cb" value="{{ form.id }}" aria-label="{{ 'Select'|t('easy-form') }}"></td>
+                            <td class="ef-cell-name">
+                                <a href="{{ editUrl }}" class="ef-form-name">{{ form.name }}</a>
+                                <span class="ef-form-handle">{{ form.handle }}</span>
+                            </td>
+                            <td>
+                                {% if form.enabled %}
+                                    <span class="ef-pill approved"><i class="ef-dot"></i>{{ 'Enabled'|t('easy-form') }}</span>
+                                {% else %}
+                                    <span class="ef-pill archived"><i class="ef-dot"></i>{{ 'Disabled'|t('easy-form') }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="ef-cell-fields">{{ form.fields|length }}</td>
+                            <td class="ef-cell-subs">
+                                {% set subCount = submissionCounts[form.id] ?? 0 %}
+                                {% if subCount > 0 %}
+                                    <a href="{{ cpUrl('easy-form/submissions', { formId: form.id }) }}" class="ef-sub-count">{{ subCount }}</a>
+                                {% else %}
+                                    <span class="ef-sub-count is-zero">0</span>
+                                {% endif %}
+                            </td>
+                            <td class="ef-cell-when">
+                                <span class="ef-rel">{{ fmt.asRelativeTime(form.dateCreated) }}</span>
+                                <span class="ef-abs">{{ form.dateCreated|date('j M Y, H:i') }}</span>
+                            </td>
+                            <td class="ef-col-actions">
+                                <div class="ef-row-actions">
+                                    <a href="{{ actionUrl('easy-form/forms/export', { formId: form.id }) }}" class="ef-row-btn" title="{{ 'Export'|t('easy-form') }}" data-icon="download"></a>
+                                    <button type="button" class="ef-row-btn ef-duplicate" title="{{ 'Duplicate'|t('app') }}" data-icon="clipboard"></button>
+                                    <button type="button" class="ef-row-btn ef-delete" title="{{ 'Delete'|t('app') }}" data-icon="trash"></button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% include 'easy-form/_pager.twig' %}
+    {% elseif hasSearch %}
+        <div class="ef-empty-state">
+            <span class="ef-empty-icon" data-icon="search" aria-hidden="true"></span>
+            <p class="ef-empty-title">{{ 'No forms match “{search}”.'|t('easy-form', { search: search }) }}</p>
+            <a class="btn" href="{{ url('easy-form/forms') }}">{{ 'Clear search'|t('easy-form') }}</a>
+        </div>
+    {% else %}
+        <div class="ef-empty-state">
+            <span class="ef-empty-icon" data-icon="section" aria-hidden="true"></span>
+            <p class="ef-empty-title">{{ 'No forms exist yet.'|t('easy-form') }}</p>
+            <a href="{{ cpUrl('easy-form/forms/new') }}" class="btn submit add icon">{{ 'New form'|t('easy-form') }}</a>
+        </div>
+    {% endif %}
+</div>
+
+{% js %}
+(function () {
+    var filterForm = document.getElementById('ef-forms-filter');
+    var searchInput = filterForm.querySelector('input[name="search"]');
+    var debounce;
+    searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); filterForm.submit(); } });
+    searchInput.addEventListener('input', function () { clearTimeout(debounce); debounce = setTimeout(function () { filterForm.submit(); }, 500); });
+
+    // Import panel toggle
+    var importBtn = document.getElementById('ef-import-btn');
+    var importPanel = document.getElementById('ef-import-panel');
+    if (importBtn && importPanel) {
+        importBtn.addEventListener('click', function () {
+            importPanel.hidden = !importPanel.hidden;
+            if (!importPanel.hidden) { var ta = importPanel.querySelector('textarea'); if (ta) ta.focus(); }
+        });
+        var cancel = document.getElementById('ef-import-cancel');
+        if (cancel) cancel.addEventListener('click', function () { importPanel.hidden = true; });
+    }
+
+    function err(m) { Craft.cp.displayError(m || Craft.t('easy-form', 'Something went wrong.')); }
+    function checkboxes() { return Array.prototype.slice.call(document.querySelectorAll('.ef-cb')); }
+    function checkedIds() { return checkboxes().filter(function (cb) { return cb.checked; }).map(function (cb) { return cb.value; }); }
+
+    // Selection + bulk bar
+    var bar = document.getElementById('ef-bulkbar');
+    var countEl = document.getElementById('ef-bulk-n');
+    var selectAll = document.getElementById('ef-select-all');
+    function refresh() {
+        var n = 0;
+        checkboxes().forEach(function (cb) {
+            var row = cb.closest('tr');
+            if (cb.checked) { n++; row.classList.add('is-selected'); } else { row.classList.remove('is-selected'); }
+        });
+        if (countEl) countEl.textContent = n;
+        if (bar) bar.hidden = n === 0;
+        if (selectAll) { selectAll.checked = n > 0 && n === checkboxes().length; selectAll.indeterminate = n > 0 && n < checkboxes().length; }
+    }
+    checkboxes().forEach(function (cb) { cb.addEventListener('change', refresh); });
+    if (selectAll) selectAll.addEventListener('change', function () { var on = selectAll.checked; checkboxes().forEach(function (cb) { cb.checked = on; }); refresh(); });
+    function clearSelection() { checkboxes().forEach(function (cb) { cb.checked = false; }); refresh(); }
+    var clearSel = document.getElementById('ef-clear-selection');
+    if (clearSel) clearSel.addEventListener('click', function (e) { e.preventDefault(); clearSelection(); });
+    // The check icon in the bulk bar looks like a ticked checkbox, so make it
+    // actually clear the selection when clicked (a real <button>, so Enter/Space
+    // activation comes for free).
+    var bulkClear = document.getElementById('ef-bulk-clear');
+    if (bulkClear) bulkClear.addEventListener('click', clearSelection);
+
+    // Row click → edit (ignore interactive targets)
+    document.querySelectorAll('.ef-table tbody tr').forEach(function (tr) {
+        tr.addEventListener('click', function (e) {
+            if (e.target.closest('a, button, input, label, .ef-pill, .ef-row-actions')) return;
+            var url = tr.getAttribute('data-url');
+            if (url) window.location.href = url;
+        });
+    });
+
+    // Bulk actions
+    function runBulk(payload, confirmMsg) {
+        if (confirmMsg && !confirm(confirmMsg)) return;
+        Craft.sendActionRequest('POST', 'easy-form/forms/bulk', { data: payload })
+            .then(function (r) {
+                if (r.data.success) { Craft.cp.displayNotice(Craft.t('easy-form', '{n} form(s) updated.', { n: r.data.affected })); location.reload(); }
+                else { err(r.data.error); }
+            }).catch(function () { err(); });
+    }
+    document.querySelectorAll('[data-bulk]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var ids = checkedIds();
+            if (!ids.length) return;
+            var kind = btn.dataset.bulk;
+            if (kind === 'delete') {
+                var targets = ids.map(function (id) {
+                    var row = document.querySelector('.ef-table tbody tr[data-id="' + id + '"]');
+                    return { id: id, name: row ? row.dataset.name : '', subs: row ? parseInt(row.dataset.subs, 10) || 0 : 0 };
+                });
+                openDeleteModal(targets);
+            } else if (kind === 'status') {
+                runBulk({ bulkAction: 'status', enabled: btn.dataset.enabled, ids: ids });
+            } else if (kind === 'export') {
+                window.location.href = '{{ actionUrl('easy-form/forms/export')|e('js') }}?formIds=' + ids.join(',');
+            }
+        });
+    });
+
+    // Per-row: duplicate + delete (export is a normal link)
+    document.querySelectorAll('.ef-duplicate').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var row = btn.closest('tr');
+            var newName = prompt(Craft.t('easy-form', 'Name for the duplicated form:'), row.dataset.name + ' (Copy)');
+            if (!newName || !newName.trim()) return;
+            Craft.sendActionRequest('POST', 'easy-form/forms/duplicate', { data: { id: row.dataset.id, newName: newName.trim() } })
+                .then(function (r) {
+                    if (r.data.success) { Craft.cp.displayNotice(Craft.t('easy-form', 'Form duplicated.')); location.reload(); }
+                    else { err(r.data.error); }
+                }).catch(function () { err(); });
+        });
+    });
+    document.querySelectorAll('.ef-row-actions .ef-delete').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var row = btn.closest('tr');
+            openDeleteModal([{ id: row.dataset.id, name: row.dataset.name, subs: parseInt(row.dataset.subs, 10) || 0 }]);
+        });
+    });
+
+    // ── Delete modal ─────────────────────────────────────────
+    // Deleting a form keeps its submissions (they're orphaned, formId → NULL)
+    // unless the user opts in to also delete them. The modal makes both the
+    // preserve-by-default behavior and the destructive opt-in explicit.
+    var dlg = {
+        overlay: document.getElementById('ef-delete-overlay'),
+        lead: document.getElementById('ef-delete-lead'),
+        infoText: document.getElementById('ef-delete-info-text'),
+        exportWrap: document.getElementById('ef-delete-export-wrap'),
+        exportLink: document.getElementById('ef-delete-export'),
+        cascadeWrap: document.getElementById('ef-delete-cascade-wrap'),
+        cascade: document.getElementById('ef-delete-cascade'),
+        cascadeLabel: document.getElementById('ef-delete-cascade-label'),
+        cancel: document.getElementById('ef-delete-cancel'),
+        confirm: document.getElementById('ef-delete-confirm'),
+    };
+    var pendingTargets = [];
+
+    function closeDeleteModal() { dlg.overlay.hidden = true; pendingTargets = []; }
+
+    function openDeleteModal(targets) {
+        pendingTargets = targets;
+        var totalSubs = targets.reduce(function (n, t) { return n + (t.subs || 0); }, 0);
+        var single = targets.length === 1;
+
+        dlg.lead.textContent = single
+            ? Craft.t('easy-form', 'Delete “{name}”?', { name: targets[0].name })
+            : Craft.t('easy-form', 'Delete {n} forms?', { n: targets.length });
+
+        // Info box: spell out what happens to submissions by default.
+        if (totalSubs > 0) {
+            dlg.infoText.textContent = Craft.t('easy-form',
+                '{n, plural, =1{Its 1 submission will be kept} other{Their # submissions will be kept}} and remain accessible under “Orphaned (deleted forms)” in Submissions.',
+                { n: totalSubs });
+        } else {
+            dlg.infoText.textContent = Craft.t('easy-form', 'This form has no submissions.');
+        }
+
+        // Export-first link (single form with submissions only).
+        if (single && totalSubs > 0) {
+            dlg.exportLink.href = Craft.getCpUrl('easy-form/submissions', { formId: targets[0].id });
+            dlg.exportWrap.hidden = false;
+        } else {
+            dlg.exportWrap.hidden = true;
+        }
+
+        // Opt-in destructive checkbox (only when there's something to delete).
+        // Always reset the label so a no-subs form never shows a prior form's text.
+        dlg.cascade.checked = false;
+        dlg.cascadeLabel.textContent = totalSubs > 0
+            ? Craft.t('easy-form', 'Also permanently delete {n, plural, =1{the 1 submission} other{the # submissions}}', { n: totalSubs })
+            : '';
+        dlg.cascadeWrap.hidden = totalSubs <= 0;
+
+        dlg.overlay.hidden = false;
+    }
+
+    dlg.cancel.addEventListener('click', closeDeleteModal);
+    dlg.overlay.addEventListener('click', function (e) { if (e.target === dlg.overlay) closeDeleteModal(); });
+    dlg.confirm.addEventListener('click', function () {
+        if (!pendingTargets.length) return;
+        var cascade = dlg.cascade.checked;
+        var count = pendingTargets.length;
+        var firstName = pendingTargets[0].name;
+        var targetIds = pendingTargets.map(function (t) { return t.id; });
+        var req;
+        if (pendingTargets.length === 1) {
+            req = Craft.sendActionRequest('POST', 'easy-form/forms/delete',
+                { data: { id: pendingTargets[0].id, deleteSubmissions: cascade ? 1 : 0 } });
+        } else {
+            req = Craft.sendActionRequest('POST', 'easy-form/forms/bulk',
+                { data: { bulkAction: 'delete', ids: pendingTargets.map(function (t) { return t.id; }), deleteSubmissions: cascade ? 1 : 0 } });
+        }
+        dlg.confirm.disabled = true;
+        req.then(function (r) {
+            dlg.confirm.disabled = false;
+            if (r.data.success) {
+                closeDeleteModal();
+                Craft.cp.displayNotice(count > 1
+                    ? Craft.t('easy-form', '{n} forms deleted.', { n: count })
+                    : Craft.t('easy-form', '“{name}” deleted.', { name: firstName }));
+                // Remove the deleted rows in place so the notice stays visible
+                // (like an entry save). Reload only if the table is now empty.
+                targetIds.forEach(function (id) {
+                    var row = document.querySelector('.ef-table tbody tr[data-id="' + id + '"]');
+                    if (row) row.remove();
+                });
+                refresh();
+                if (!document.querySelector('.ef-table tbody tr')) location.reload();
+            } else { err(r.data.error); }
+        }).catch(function () { dlg.confirm.disabled = false; err(); });
+    });
+
+    refresh();
+})();
+{% endjs %}
+
+{% css %}
+.ef-forms { --ef-blue: #2160e6; --ef-blue-dark: #1b4fc0; --ef-sel: color-mix(in srgb, var(--ef-blue) 8%, var(--white, #fff)); --ef-sel-border: color-mix(in srgb, var(--ef-blue) 30%, transparent); }
+
+/* Full-bleed: let the CP canvas show behind our cards. */
+#content.content-pane:has(.ef-forms) { background: transparent; box-shadow: none; padding: 0; border: 0; border-radius: 0; }
+.ef-forms .ef-table-wrap, .ef-forms .ef-bulkbar { box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 6px 16px rgba(16,24,40,.05); }
+
+.ef-import-panel { margin-bottom: 18px; padding: 16px; border: 1px solid var(--hairline-color, #e3e8ef); border-radius: 14px; background: var(--white, #fff); }
+.ef-import-panel[hidden] { display: none; }
+.ef-import-panel h3 { margin-top: 0; }
+
+/* ── Toolbar ───────────────────────────────────────────────── */
+.ef-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.ef-search { position: relative; flex: 1 1 320px; max-width: 420px; }
+.ef-search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--light-text-color, #8893a2); pointer-events: none; font-size: 14px; }
+.ef-search input { width: 100%; height: 34px; padding: 0 12px 0 32px; border: 1px solid var(--hairline-color, #e3e8ef); border-radius: 11px; background: var(--white, #fff); color: var(--text-color, #1d2530); font-size: 14px; box-shadow: none; }
+.ef-search input:focus { outline: none; border-color: var(--ef-blue); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ef-blue) 20%, transparent); }
+.ef-clear-link { color: var(--light-text-color, #8893a2); font-size: 13px; padding: 0 4px; }
+.ef-clear-link:hover { color: var(--ef-blue); }
+
+/* ── Bulk bar ──────────────────────────────────────────────── */
+.ef-bulkbar { display: flex; align-items: center; gap: 16px; padding: 9px 14px; margin-bottom: 12px; background: var(--ef-sel); border: 1px solid var(--ef-sel-border); border-radius: 14px; }
+.ef-bulkbar[hidden] { display: none; }
+.ef-bulk-count { display: inline-flex; align-items: center; gap: 7px; color: var(--text-color, #1d2530); font-size: 13px; }
+.ef-bulk-check { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 0; padding: 0; border-radius: 4px; background: var(--ef-blue); color: #fff; font-size: 9px; cursor: pointer; transition: background-color .08s ease, box-shadow .08s ease; }
+.ef-bulk-check:hover { background: var(--ef-blue-dark); }
+.ef-bulk-check:focus-visible { outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--ef-blue) 35%, transparent); }
+.ef-bulk-actions { display: flex; align-items: center; gap: 4px; }
+.ef-bulk-btn { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: var(--text-color, #1d2530); font-size: 13px; cursor: pointer; }
+.ef-bulk-btn:hover { background: color-mix(in srgb, var(--ef-blue) 12%, transparent); }
+.ef-bulk-btn.ef-danger { color: #b32328; }
+.ef-bulk-btn.ef-danger:hover { background: color-mix(in srgb, #b32328 12%, transparent); }
+.ef-clear-selection { margin-left: auto; color: var(--ef-blue); font-size: 13px; }
+.ef-clear-selection:hover { color: var(--ef-blue-dark); text-decoration: underline; }
+
+.ef-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+.ef-dot.approved { background: #1aa85f; }
+
+/* ── Table ─────────────────────────────────────────────────── */
+.ef-table-wrap { border: 1px solid var(--hairline-color, #e3e8ef); border-radius: 16px; overflow: hidden; background: var(--white, #fff); }
+.ef-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ef-table thead th { text-align: left; padding: 10px 16px; background: var(--gray-050, #f4f6f9); border-bottom: 1px solid var(--hairline-color, #e3e8ef); color: var(--light-text-color, #8893a2); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.ef-table tbody td { padding: 12px 16px; border-bottom: 1px solid var(--hairline-color, #e3e8ef); vertical-align: middle; }
+.ef-table tbody tr:last-child td { border-bottom: 0; }
+.ef-table tbody tr { cursor: pointer; transition: background-color .08s ease; }
+.ef-table tbody tr:hover { background: var(--gray-050, #f4f6f9); }
+.ef-table tbody tr.is-selected { background: var(--ef-sel); }
+.ef-table tbody tr.is-selected:hover { background: color-mix(in srgb, var(--ef-blue) 12%, var(--white, #fff)); }
+
+.ef-col-check { width: 36px; }
+.ef-col-check input { margin: 0; cursor: pointer; }
+.ef-cell-fields { color: var(--medium-text-color, #5a6573); }
+.ef-sub-count { font-weight: 600; color: var(--ef-blue); }
+.ef-sub-count:hover { text-decoration: underline; }
+.ef-sub-count.is-zero { color: var(--light-text-color, #8893a2); font-weight: 400; }
+
+.ef-form-name { display: block; color: var(--ef-blue); font-weight: 600; }
+.ef-form-name:hover { color: var(--ef-blue-dark); text-decoration: underline; }
+.ef-form-handle { display: block; margin-top: 2px; color: var(--light-text-color, #8893a2); font-size: 12px; font-family: var(--monospace-font, ui-monospace, monospace); }
+
+.ef-rel { display: block; color: var(--text-color, #1d2530); }
+.ef-abs { display: block; margin-top: 2px; color: var(--light-text-color, #8893a2); font-size: 12px; }
+
+/* Per-row actions (reveal on hover) */
+.ef-col-actions { width: 116px; text-align: right; }
+.ef-row-actions { display: inline-flex; gap: 2px; opacity: 0; transition: opacity .08s ease; }
+.ef-table tbody tr:hover .ef-row-actions, .ef-row-actions:focus-within { opacity: 1; }
+.ef-row-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 0; border-radius: 7px; background: transparent; color: var(--light-text-color, #8893a2); cursor: pointer; }
+.ef-row-btn:hover { background: var(--gray-100, #eef1f6); color: var(--text-color, #1d2530); }
+.ef-row-btn.ef-delete:hover { background: #fdeaea; color: #b32328; }
+
+/* ── Status pill ───────────────────────────────────────────── */
+.ef-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 500; border: 1px solid color-mix(in srgb, currentColor 24%, transparent); }
+.ef-pill .ef-dot { width: 6px; height: 6px; }
+.ef-pill.approved { background: #e3f3ea; color: #147a4b; } .ef-pill.approved .ef-dot { background: #1aa85f; }
+.ef-pill.archived { background: var(--gray-100, #eef1f6); color: var(--medium-text-color, #5a6573); } .ef-pill.archived .ef-dot { background: #9aa4b2; }
+
+/* ── Pagination ────────────────────────────────────────────── */
+.ef-pagination { display: flex; justify-content: center; gap: 4px; margin-top: 20px; }
+.ef-page { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid var(--hairline-color, #e3e8ef); border-radius: 9px; background: var(--white, #fff); color: var(--text-color, #1d2530); font-size: 13px; }
+.ef-page:hover { border-color: var(--ef-blue); color: var(--ef-blue); }
+.ef-page.is-active { background: var(--ef-blue); border-color: var(--ef-blue); color: #fff; }
+.ef-page-gap { display: inline-flex; align-items: center; padding: 0 4px; color: var(--light-text-color, #8893a2); }
+
+/* ── Empty state ───────────────────────────────────────────── */
+.ef-empty-state { text-align: center; padding: 60px 20px; border: 1px dashed var(--hairline-color, #e3e8ef); border-radius: 16px; background: var(--gray-050, #f9fafc); }
+.ef-empty-icon { font-size: 30px; color: var(--light-text-color, #c4ccd8); }
+.ef-empty-title { margin: 12px 0 16px; color: var(--medium-text-color, #5a6573); font-size: 15px; }
+
+/* ── Delete modal ─────────────────────────────────────────── */
+.ef-modal-overlay { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(16,24,40,.45); padding: 20px; }
+.ef-modal-overlay[hidden] { display: none; }
+/* The `hidden` attribute must win over the `display:flex` rules below, so the
+   toggled rows (export link, cascade checkbox) actually hide. */
+.ef-modal [hidden] { display: none; }
+.ef-modal { background: var(--white, #fff); border-radius: 10px; box-shadow: 0 12px 40px rgba(16,24,40,.25); max-width: 460px; width: 100%; padding: 24px; }
+.ef-modal h2 { margin: 0 0 10px; font-size: 18px; }
+.ef-modal #ef-delete-lead { margin: 0 0 14px; font-size: 14px; }
+.ef-modal-info { display: flex; gap: 10px; align-items: flex-start; background: var(--ef-sel, #eef3fe); border: 1px solid var(--ef-sel-border, #c5d6fb); border-radius: 8px; padding: 12px 14px; font-size: 13px; line-height: 1.45; color: var(--medium-text-color, #3c4858); }
+.ef-modal-info-icon { color: var(--ef-blue, #2160e6); flex: 0 0 auto; margin-top: 1px; }
+.ef-modal #ef-delete-export-wrap { margin: 14px 0 0; }
+.ef-modal-check { display: flex; gap: 9px; align-items: flex-start; margin-top: 16px; font-size: 13px; cursor: pointer; color: #b42318; }
+.ef-modal-check input { margin-top: 2px; }
+.ef-modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.ef-modal .ef-danger { background: #d92d20; border-color: #d92d20; color: #fff; }
+.ef-modal .ef-danger:hover { background: #b42318; border-color: #b42318; }
+{% endcss %}
+{% endblock %}

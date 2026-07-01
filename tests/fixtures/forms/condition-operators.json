@@ -1,0 +1,87 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Condition Operators",
+    "handle": "e2eCondOps",
+    "description": "Row conditions exercising every operator (contains/notContains/isEmpty/isNotEmpty) and 'any' (OR) logic (e2e).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_inputs",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true },
+                { "id": "f3", "type": "text", "label": "Trigger", "handle": "trigger" },
+                { "id": "f4", "type": "text", "label": "Comment", "handle": "comment" }
+              ]
+            },
+            {
+              "id": "row_contains",
+              "stackOnMobile": true,
+              "conditions": {
+                "action": "show",
+                "logic": "all",
+                "rules": [{ "field": "trigger", "operator": "contains", "value": "vip" }]
+              },
+              "fields": [{ "id": "f5", "type": "text", "label": "VIP Perk", "handle": "vipPerk" }]
+            },
+            {
+              "id": "row_notcontains",
+              "stackOnMobile": true,
+              "conditions": {
+                "action": "show",
+                "logic": "all",
+                "rules": [{ "field": "trigger", "operator": "notContains", "value": "vip" }]
+              },
+              "fields": [{ "id": "f6", "type": "text", "label": "Standard Note", "handle": "standardNote" }]
+            },
+            {
+              "id": "row_isempty",
+              "stackOnMobile": true,
+              "conditions": {
+                "action": "show",
+                "logic": "all",
+                "rules": [{ "field": "comment", "operator": "isEmpty", "value": "" }]
+              },
+              "fields": [{ "id": "f7", "type": "text", "label": "Need Comment", "handle": "needComment" }]
+            },
+            {
+              "id": "row_isnotempty",
+              "stackOnMobile": true,
+              "conditions": {
+                "action": "show",
+                "logic": "all",
+                "rules": [{ "field": "comment", "operator": "isNotEmpty", "value": "" }]
+              },
+              "fields": [{ "id": "f8", "type": "text", "label": "Thanks Comment", "handle": "thanksComment" }]
+            },
+            {
+              "id": "row_any",
+              "stackOnMobile": true,
+              "conditions": {
+                "action": "show",
+                "logic": "any",
+                "rules": [
+                  { "field": "trigger", "operator": "equals", "value": "x" },
+                  { "field": "trigger", "operator": "equals", "value": "y" }
+                ]
+              },
+              "fields": [{ "id": "f9", "type": "text", "label": "X or Y", "handle": "xyField" }]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Contact",
+    "handle": "e2eContact",
+    "description": "Simple contact form used by the e2e suite (no CAPTCHA).",
+    "allowUrlPrefill": true,
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true },
+                { "id": "f3", "type": "textarea", "label": "Message", "handle": "message", "required": false }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [
+        { "handle": "utm_source", "label": "UTM Source", "type": "string" }
+      ],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name", "source": "utm_source" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

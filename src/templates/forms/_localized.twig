@@ -1,0 +1,75 @@
+{#
+    Localized text input: the main (primary) site's value with a collapsible
+    "Translations" section beneath it for the other sites. On single-site
+    installs it renders a plain field (no site badge, no toggle).
+
+    Used for field labels/help/content/options/messages and form-level messages,
+    so the JS builder (modules/field-manager.js `localizedField`) emits the same
+    markup/classes for newly-added fields.
+
+    opts:
+      label        Field label (required)
+      instructions Optional help text under the label
+      type         'text' (default) or 'textarea'
+      rows         Textarea rows (default 3)
+      placeholder  Primary placeholder
+      baseName     Primary input name when it lives outside the site map
+                   (e.g. fieldPrefix ~ '[label]'); omit for message maps
+      baseValue    Primary value when baseName is set
+      mapName      Per-site map name (e.g. fieldPrefix ~ '[siteLabels]')
+      mapValues    Per-site value hash (e.g. field.siteLabels)
+      inputClass   Extra class(es) on the primary input (e.g. 'field-label-input')
+      required     Mark the primary input required
+#}
+{% macro field(opts) %}
+    {% set type = opts.type|default('text') %}
+    {% set rows = opts.rows|default(3) %}
+    {% set mapValues = opts.mapValues|default({}) %}
+    {% set sites = craft.app.sites.getAllSites() %}
+    {% set primary = (sites|filter(s => s.primary)|first)|default(sites|first) %}
+    {% set others = sites|filter(s => s.handle != primary.handle)|values %}
+    {% set multi = others|length > 0 %}
+    {% set baseName = opts.baseName|default('') %}
+    {% set hasBase = baseName is not empty %}
+    {% set primaryName = hasBase ? baseName : (opts.mapName ~ '[' ~ primary.handle ~ ']') %}
+    {% set primaryValue = hasBase ? (opts.baseValue|default('')) : (mapValues[primary.handle]|default('')) %}
+    {% set primaryClass = ('text fullwidth ' ~ (opts.inputClass|default('')))|trim %}
+    {# Other sites hint at where a blank value falls back: to the primary value
+       (labels/help/content) or to a shared default (messages). #}
+    {% set othersPlaceholder = (opts.othersFallback|default('primary') == 'placeholder') ? (opts.placeholder|default('')) : primaryValue %}
+
+    <div class="field ef-localized">
+        <div class="heading">
+            <label>{{ opts.label }}{% if multi %} <span class="ef-localized-site">{{ primary.name }} ({{ primary.handle }})</span>{% endif %}</label>
+            {% if opts.instructions|default('') %}<div class="instructions"><p>{{ opts.instructions }}</p></div>{% endif %}
+        </div>
+        <div class="input ltr">
+            {% if type == 'textarea' %}
+                <textarea name="{{ primaryName }}" rows="{{ rows }}" class="{{ primaryClass }}"{% if opts.placeholder|default('') %} placeholder="{{ opts.placeholder }}"{% endif %}{% if opts.required|default(false) %} required{% endif %}>{{ primaryValue }}</textarea>
+            {% else %}
+                <input type="text" name="{{ primaryName }}" value="{{ primaryValue }}" class="{{ primaryClass }}"{% if opts.placeholder|default('') %} placeholder="{{ opts.placeholder }}"{% endif %}{% if opts.required|default(false) %} required{% endif %}>
+            {% endif %}
+        </div>
+
+        {% if multi %}
+            <button type="button" class="ef-localized-toggle" aria-expanded="false">
+                <span class="ef-localized-caret" aria-hidden="true"></span><span class="ef-localized-globe" aria-hidden="true"></span>{{ 'Translations'|t('easy-form') }} <span class="ef-localized-count">{{ others|length }} {{ others|length == 1 ? 'site'|t('easy-form') : 'sites'|t('easy-form') }}</span>
+            </button>
+            <div class="ef-localized-others" hidden>
+                {% for s in others %}
+                    {% set otherValue = mapValues[s.handle]|default('') %}
+                    <div class="field">
+                        <div class="heading"><label><span class="ef-localized-badge" aria-hidden="true">{{ s.language|slice(0, 2)|upper }}</span>{{ s.name }} <span class="ef-localized-site">({{ s.handle }})</span></label></div>
+                        <div class="input ltr">
+                            {% if type == 'textarea' %}
+                                <textarea name="{{ opts.mapName ~ '[' ~ s.handle ~ ']' }}" rows="{{ rows }}" class="text fullwidth"{% if othersPlaceholder %} placeholder="{{ othersPlaceholder }}"{% endif %}>{{ otherValue }}</textarea>
+                            {% else %}
+                                <input type="text" name="{{ opts.mapName ~ '[' ~ s.handle ~ ']' }}" value="{{ otherValue }}" class="text fullwidth"{% if othersPlaceholder %} placeholder="{{ othersPlaceholder }}"{% endif %}>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endmacro %}

@@ -1,0 +1,34 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Rate Limit (IP)",
+    "handle": "e2eRateLimitIp",
+    "description": "Per-IP rate limit: 3 submissions per window (e2e).",
+    "rateLimit": 3,
+    "rateLimitWindow": 60,
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name" },
+                { "id": "f2", "type": "email", "label": "Email", "handle": "email" }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Policy Strict",
+    "handle": "e2ePolicyStrict",
+    "description": "extraFieldPolicy=strict: only builder fields are kept — declared frontend fields and unknown keys are both dropped (e2e).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "strict",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [
+        { "handle": "note", "label": "Note", "type": "string" }
+      ],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

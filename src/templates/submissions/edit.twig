@@ -1,0 +1,78 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms' as forms %}
+
+{% set title = 'Edit Submission #' ~ submission.id %}
+{% set selectedSubnavItem = 'submissions' %}
+{% set crumbs = [
+    { label: 'Submissions'|t('easy-form'), url: url('easy-form/submissions') },
+    { label: 'Submission #' ~ submission.id, url: url('easy-form/submissions/' ~ submission.id) },
+] %}
+
+{# Mirror the view page's field metadata: labels + types from the stored
+   snapshot (survives form changes/deletion), falling back to the live form. #}
+{% set snap = submission.getFieldSnapshotArray() %}
+{% set snapFields = snap.fields ?? [] %}
+{% set flatValues = submission.getFlatValues() %}
+{% set presentationalTypes = easyFormPresentationalTypes() %}
+{% set fieldMeta = {} %}
+{% for f in snapFields|filter(f => (f.type ?? 'text') not in presentationalTypes) %}{% set fieldMeta = fieldMeta|merge({ (f.handle): { label: f.label ?? f.handle, type: f.type ?? 'text' } }) %}{% endfor %}
+{% if fieldMeta is empty and form %}
+    {% for f in form.getFields()|filter(f => (f.type ?? 'text') not in presentationalTypes) %}{% set fieldMeta = fieldMeta|merge({ (f.handle): { label: f.label ?? f.handle, type: f.type ?? 'text' } }) %}{% endfor %}
+{% endif %}
+{% set orderedHandles = fieldMeta|keys %}
+{% for handle in flatValues|keys %}{% if handle not in orderedHandles %}{% set orderedHandles = orderedHandles|merge([handle]) %}{% endif %}{% endfor %}
+
+{% set multilineTypes = ['textarea', 'paragraph', 'message'] %}
+
+{% block content %}
+    <form method="post" accept-charset="UTF-8">
+        {{ csrfInput() }}
+        {{ actionInput('easy-form/submissions/save-edit') }}
+        {{ hiddenInput('submissionId', submission.id) }}
+
+        <p class="light">{{ 'Only the submitted field values are editable here. Details such as the site, IP address and timestamps are never changed. File fields can’t be edited.'|t('easy-form') }}</p>
+
+        {% if orderedHandles is empty %}
+            <p>{{ 'This submission has no editable field values.'|t('easy-form') }}</p>
+        {% endif %}
+
+        {% for handle in orderedHandles %}
+            {% set meta = fieldMeta[handle] ?? { label: handle, type: 'text' } %}
+            {% set value = flatValues[handle] ?? '' %}
+            {% set inputName = 'values[' ~ handle ~ ']' %}
+
+            {% if meta.type == 'file' %}
+                {{ forms.field({
+                    label: meta.label,
+                    instructions: 'File uploads can’t be edited here.'|t('easy-form'),
+                }, '<span class="light">' ~ ('(file field)'|t('easy-form')) ~ '</span>') }}
+            {% elseif value is iterable and value is not string %}
+                {{ forms.textareaField({
+                    label: meta.label,
+                    instructions: 'One value per line.'|t('easy-form'),
+                    name: inputName,
+                    value: value|join("\n"),
+                    rows: 4,
+                }) }}
+            {% elseif meta.type in multilineTypes %}
+                {{ forms.textareaField({
+                    label: meta.label,
+                    name: inputName,
+                    value: value,
+                    rows: 4,
+                }) }}
+            {% else %}
+                {{ forms.textField({
+                    label: meta.label,
+                    name: inputName,
+                    value: value,
+                }) }}
+            {% endif %}
+        {% endfor %}
+
+        <div class="buttons">
+            <button type="submit" class="btn submit">{{ 'Save'|t('easy-form') }}</button>
+            <a href="{{ url('easy-form/submissions/' ~ submission.id) }}" class="btn">{{ 'Cancel'|t('easy-form') }}</a>
+        </div>
+    </form>
+{% endblock %}

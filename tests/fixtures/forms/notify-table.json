@@ -1,0 +1,52 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Notify Table",
+    "handle": "e2eNotifyTable",
+    "description": "Notification content with a {table[…]} token rendering selected fields (e2e).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true }
+              ]
+            },
+            {
+              "id": "row_2",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f3", "type": "textarea", "label": "Message", "handle": "message" }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null,
+    "notificationSettings": [
+      {
+        "enabled": true,
+        "name": "Table content",
+        "recipients": ["notify-table@example.test"],
+        "subject": "Table content notify",
+        "senderEmail": "no-reply@example.test",
+        "senderName": "Easy Form",
+        "siteContent": {
+          "default": "Submission summary:\n{table[name,message]}"
+        }
+      }
+    ]
+  }
+}

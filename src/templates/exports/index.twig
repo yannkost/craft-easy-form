@@ -1,0 +1,467 @@
+{% extends '_layouts/cp' %}
+
+{% set title = 'Exports'|t('easy-form') %}
+{% set hasSearch = (search ?? '') != '' %}
+
+{% block actionButton %}
+    <a href="{{ url('easy-form/exports/saved') }}" class="btn" data-icon="folder">{{ 'Saved exports'|t('easy-form') }}</a>
+{% endblock %}
+
+{% block content %}
+<div class="ef-exports">
+
+    <p class="ef-exports-intro light">{{ 'Export a form’s submissions to CSV. Choose a form, then pick optional filters.'|t('easy-form') }}</p>
+
+    {# ── Toolbar ─────────────────────────────────────────────── #}
+    <form method="get" action="{{ url('easy-form/exports') }}" class="ef-toolbar">
+        <div class="ef-search">
+            <span class="ef-search-icon" data-icon="search" aria-hidden="true"></span>
+            <input type="text" name="search" value="{{ search ?? '' }}" autocomplete="off" placeholder="{{ 'Search forms…'|t('easy-form') }}">
+        </div>
+        {% if hasSearch %}<a class="ef-clear-link" href="{{ url('easy-form/exports') }}">{{ 'Clear'|t('easy-form') }}</a>{% endif %}
+        {% if (limit ?? 20) != 20 %}<input type="hidden" name="limit" value="{{ limit }}">{% endif %}
+    </form>
+
+    {% if forms|length %}
+        <div class="ef-table-wrap">
+            <table class="ef-table">
+                <thead>
+                    <tr>
+                        <th>{{ 'Name'|t('easy-form') }}</th>
+                        <th>{{ 'Submissions'|t('easy-form') }}</th>
+                        <th class="ef-col-actions" aria-hidden="true"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form in forms %}
+                        {% set subCount = submissionCounts[form.id] ?? 0 %}
+                        <tr>
+                            <td class="ef-cell-name">
+                                <span class="ef-form-name">{{ form.name }}</span>
+                                <span class="ef-form-handle">{{ form.handle }}</span>
+                            </td>
+                            <td class="ef-cell-subs">{{ subCount }}</td>
+                            <td class="ef-col-actions">
+                                <button type="button" class="btn icon ef-modal-open" data-icon="download" data-mode="export"
+                                    data-form-id="{{ form.id }}" data-form-name="{{ form.name }}"
+                                    {% if subCount == 0 %}disabled{% endif %}>
+                                    {{ 'Export…'|t('easy-form') }}
+                                </button>
+                                <button type="button" class="btn icon ef-modal-open ef-danger-btn" data-icon="trash" data-mode="delete"
+                                    data-form-id="{{ form.id }}" data-form-name="{{ form.name }}"
+                                    {% if subCount == 0 %}disabled{% endif %}>
+                                    {{ 'Delete…'|t('easy-form') }}
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% include 'easy-form/_pager.twig' %}
+    {% elseif hasSearch %}
+        <div class="ef-empty-state">
+            <span class="ef-empty-icon" data-icon="search" aria-hidden="true"></span>
+            <p class="ef-empty-title">{{ 'No forms match “{search}”.'|t('easy-form', { search: search }) }}</p>
+            <a class="btn" href="{{ url('easy-form/exports') }}">{{ 'Clear search'|t('easy-form') }}</a>
+        </div>
+    {% else %}
+        <div class="ef-empty-state">
+            <span class="ef-empty-icon" data-icon="section" aria-hidden="true"></span>
+            <p class="ef-empty-title">{{ 'No forms exist yet.'|t('easy-form') }}</p>
+        </div>
+    {% endif %}
+</div>
+
+{# ── Filter + action modal (export / delete) ─────────────────── #}
+<div class="ef-modal" id="ef-modal" hidden>
+    <div class="ef-modal-backdrop" data-modal-cancel></div>
+    <div class="ef-modal-box" role="dialog" aria-modal="true" aria-labelledby="ef-modal-title">
+
+        {# Step 1: filters #}
+        <div class="ef-modal-filters">
+            <h2 id="ef-modal-title"></h2>
+            <p class="light" id="ef-modal-form"></p>
+
+            <div class="field">
+                <div class="heading"><label>{{ 'Site'|t('easy-form') }}</label></div>
+                <div class="input"><div class="select fullwidth"><select id="ef-f-site">
+                    <option value="">{{ 'All sites'|t('easy-form') }}</option>
+                    {% for site in sites %}
+                        <option value="{{ site.id }}">{{ site.name }}</option>
+                    {% endfor %}
+                </select></div></div>
+            </div>
+
+            <div class="field">
+                <div class="heading"><label>{{ 'Status'|t('easy-form') }}</label></div>
+                <div class="input"><div class="select fullwidth"><select id="ef-f-status">
+                    <option value="">{{ 'Any status'|t('easy-form') }}</option>
+                    <option value="pending">{{ 'Pending'|t('easy-form') }}</option>
+                    <option value="approved">{{ 'Approved'|t('easy-form') }}</option>
+                    <option value="spam">{{ 'Spam'|t('easy-form') }}</option>
+                    <option value="archived">{{ 'Archived'|t('easy-form') }}</option>
+                </select></div></div>
+            </div>
+
+            <div class="ef-modal-dates">
+                <div class="field">
+                    <div class="heading"><label>{{ 'From'|t('easy-form') }}</label></div>
+                    <div class="input"><input type="date" id="ef-f-from" class="text"></div>
+                </div>
+                <div class="field">
+                    <div class="heading"><label>{{ 'To'|t('easy-form') }}</label></div>
+                    <div class="input"><input type="date" id="ef-f-to" class="text"></div>
+                </div>
+            </div>
+
+            <div class="ef-modal-columns" id="ef-modal-columns">
+                <div class="heading">
+                    <label>{{ 'Columns'|t('easy-form') }}</label>
+                    <span class="ef-cols-actions">
+                        <button type="button" class="ef-cols-link" data-cols-all>{{ 'All'|t('easy-form') }}</button>
+                        <span class="ef-cols-sep">·</span>
+                        <button type="button" class="ef-cols-link" data-cols-none>{{ 'None'|t('easy-form') }}</button>
+                    </span>
+                </div>
+                <div class="ef-cols-list" id="ef-cols-list"></div>
+            </div>
+
+            <label class="ef-keep-export" id="ef-keep-export">
+                <input type="checkbox" id="ef-f-keep">
+                <span>
+                    {{ 'Save a copy on the server'|t('easy-form') }}
+                    <span class="ef-keep-hint">{{ 'Kept exports stay under Exports → Saved until you delete them.'|t('easy-form') }}</span>
+                </span>
+            </label>
+
+            <div class="buttons">
+                <button type="button" class="btn" data-modal-cancel>{{ 'Cancel'|t('app') }}</button>
+                <button type="button" class="btn submit" id="ef-do-export">{{ 'Export CSV'|t('easy-form') }}</button>
+                <button type="button" class="btn submit ef-danger-submit" id="ef-do-delete">{{ 'Delete…'|t('easy-form') }}</button>
+            </div>
+        </div>
+
+        {# Step 2: delete confirmation #}
+        <div class="ef-modal-confirm" hidden>
+            <h2>{{ 'Delete submissions?'|t('easy-form') }}</h2>
+            <p id="ef-confirm-msg"></p>
+            <p class="ef-confirm-warn">{{ 'This cannot be undone.'|t('easy-form') }}</p>
+            <div class="buttons">
+                <button type="button" class="btn" data-confirm-back>{{ 'Cancel'|t('app') }}</button>
+                <button type="button" class="btn submit ef-danger-submit" id="ef-confirm-delete">{{ 'Yes, delete'|t('easy-form') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% js %}
+(function () {
+    var modal = document.getElementById('ef-modal');
+    if (!modal) return;
+
+    var filtersView = modal.querySelector('.ef-modal-filters');
+    var confirmView = modal.querySelector('.ef-modal-confirm');
+    var title = document.getElementById('ef-modal-title');
+    var formLabel = document.getElementById('ef-modal-form');
+    var exportBtn = document.getElementById('ef-do-export');
+    var deleteBtn = document.getElementById('ef-do-delete');
+    var current = { id: null, name: '' };
+
+    var colsBox = document.getElementById('ef-modal-columns');
+    var colsList = document.getElementById('ef-cols-list');
+    var keepBox = document.getElementById('ef-keep-export');
+    var keepInput = document.getElementById('ef-f-keep');
+
+    function renderColumns(cols) {
+        colsList.innerHTML = '';
+        var groups = { fields: [], meta: [] };
+        cols.forEach(function (c) { (groups[c.group] || groups.meta).push(c); });
+        [['fields', Craft.t('easy-form', 'Form fields')], ['meta', Craft.t('easy-form', 'Additional data')]].forEach(function (g) {
+            if (!groups[g[0]].length) { return; }
+            var h = document.createElement('div');
+            h.className = 'ef-cols-group-label';
+            h.textContent = g[1];
+            colsList.appendChild(h);
+            groups[g[0]].forEach(function (c) {
+                var label = document.createElement('label');
+                label.className = 'ef-col-check';
+                var cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.value = c.key;
+                cb.checked = !!c['default'];
+                var span = document.createElement('span');
+                span.textContent = c.label;
+                label.appendChild(cb);
+                label.appendChild(span);
+                colsList.appendChild(label);
+            });
+        });
+    }
+
+    function loadColumns(formId) {
+        colsList.innerHTML = '<p class="light">' + Craft.t('easy-form', 'Loading columns…') + '</p>';
+        Craft.sendActionRequest('GET', 'easy-form/submissions/export-columns', { params: { formId: formId } })
+            .then(function (resp) { renderColumns((resp.data && resp.data.columns) || []); })
+            .catch(function () { colsList.innerHTML = '<p class="error">' + Craft.t('easy-form', 'Could not load columns.') + '</p>'; });
+    }
+
+    function selectedColumns() {
+        return Array.prototype.map.call(
+            colsList.querySelectorAll('input[type="checkbox"]:checked'),
+            function (cb) { return cb.value; }
+        );
+    }
+
+    function filters() {
+        var p = {};
+        var site = document.getElementById('ef-f-site').value;
+        var status = document.getElementById('ef-f-status').value;
+        var from = document.getElementById('ef-f-from').value;
+        var to = document.getElementById('ef-f-to').value;
+        if (site) p.siteId = site;
+        if (status) p.status = status;
+        if (from) p.dateFrom = from;
+        if (to) p.dateTo = to;
+        return p;
+    }
+
+    function openModal(id, name, mode) {
+        current.id = id;
+        current.name = name;
+        // Reset to the filters step.
+        confirmView.hidden = true;
+        filtersView.hidden = false;
+        ['ef-f-site', 'ef-f-status'].forEach(function (i) { document.getElementById(i).value = ''; });
+        document.getElementById('ef-f-from').value = '';
+        document.getElementById('ef-f-to').value = '';
+        if (keepInput) { keepInput.checked = false; }
+
+        var deleting = mode === 'delete';
+        title.textContent = deleting
+            ? '{{ 'Delete submissions'|t('easy-form')|e('js') }}'
+            : '{{ 'Export submissions'|t('easy-form')|e('js') }}';
+        formLabel.textContent = name;
+        exportBtn.hidden = deleting;
+        deleteBtn.hidden = !deleting;
+        modal.hidden = false;
+    }
+    function closeModal() { modal.hidden = true; }
+
+    document.querySelectorAll('.ef-modal-open').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var isExport = btn.dataset.mode === 'export';
+            openModal(btn.dataset.formId, btn.dataset.formName, btn.dataset.mode);
+            colsBox.hidden = !isExport;
+            if (keepBox) { keepBox.hidden = !isExport; }
+            if (isExport) { loadColumns(btn.dataset.formId); }
+        });
+    });
+
+    modal.querySelectorAll('[data-cols-all], [data-cols-none]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var on = btn.hasAttribute('data-cols-all');
+            colsList.querySelectorAll('input[type="checkbox"]').forEach(function (cb) { cb.checked = on; });
+        });
+    });
+    modal.querySelectorAll('[data-modal-cancel]').forEach(function (el) {
+        el.addEventListener('click', closeModal);
+    });
+    modal.querySelectorAll('[data-confirm-back]').forEach(function (el) {
+        el.addEventListener('click', function () { confirmView.hidden = true; filtersView.hidden = false; });
+    });
+
+    // Trigger a download without navigating away (the endpoint streams an
+    // attachment, so the page stays put and the user keeps their filters).
+    function doDownload(url) {
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = '';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+
+    // Browsers swallow a programmatic download in a background tab, so only
+    // fire while the page is visible; if hidden, flag the tab title and retry
+    // the moment the user returns. Kept exports are also always in Saved, so
+    // the file is never lost either way.
+    var originalTitle = document.title;
+    function triggerDownload(url) {
+        if (document.visibilityState === 'visible') {
+            document.title = originalTitle;
+            doDownload(url);
+        } else {
+            document.title = '✓ ' + Craft.t('easy-form', 'Export ready') + ' — ' + originalTitle;
+            document.addEventListener('visibilitychange', function onVis() {
+                if (document.visibilityState === 'visible') {
+                    document.removeEventListener('visibilitychange', onVis);
+                    triggerDownload(url);
+                }
+            });
+        }
+    }
+
+    // Poll the queued export in the background; download + notify when ready.
+    function pollExport(token) {
+        var tries = 0;
+        var timer = setInterval(function () {
+            if (++tries > 900) { clearInterval(timer); return; }
+            Craft.sendActionRequest('GET', 'easy-form/submissions/export-check', { params: { key: token } })
+                .then(function (resp) {
+                    if (resp.data && resp.data.ready) {
+                        clearInterval(timer);
+                        triggerDownload(resp.data.downloadUrl);
+                        Craft.cp.displayNotice(Craft.t('easy-form', 'Your export is ready.'));
+                    } else if (resp.data && resp.data.failed) {
+                        clearInterval(timer);
+                        Craft.cp.displayError(resp.data.message || Craft.t('easy-form', 'Export failed.'));
+                    }
+                })
+                .catch(function () { /* transient error — keep polling */ });
+        }, 2000);
+    }
+
+    // Export → queue the job and keep the user on the page; the download arrives
+    // in the background so their search/filters are never lost.
+    exportBtn.addEventListener('click', function () {
+        if (!current.id) return;
+        var columns = selectedColumns();
+        if (!columns.length) {
+            Craft.cp.displayError(Craft.t('easy-form', 'Select at least one column to export.'));
+            return;
+        }
+        var data = filters();
+        data.formId = current.id;
+        data.columns = columns;
+        data.keep = keepInput && keepInput.checked ? 1 : 0;
+        exportBtn.disabled = true;
+        var kept = data.keep === 1;
+        Craft.sendActionRequest('POST', 'easy-form/submissions/export', { data: data }).then(function (resp) {
+            closeModal();
+            exportBtn.disabled = false;
+            Craft.cp.displayNotice(kept
+                ? Craft.t('easy-form', 'Export started — it will download when ready and stay under Exports → Saved.')
+                : Craft.t('easy-form', 'Export started in the background — your download will begin when it’s ready.'));
+            pollExport(resp.data.token);
+        }).catch(function () {
+            exportBtn.disabled = false;
+            Craft.cp.displayError(Craft.t('easy-form', 'Could not start the export.'));
+        });
+    });
+
+    // Delete → confirm (with a live count) → POST.
+    deleteBtn.addEventListener('click', function () {
+        var data = filters();
+        data.formId = current.id;
+        Craft.sendActionRequest('POST', 'easy-form/exports/count', { data: data }).then(function (resp) {
+            var n = resp.data.count;
+            document.getElementById('ef-confirm-msg').textContent = Craft.t('easy-form',
+                'Permanently delete {n} submission(s) for “{form}” matching the selected filters?',
+                { n: n, form: current.name });
+            document.getElementById('ef-confirm-delete').disabled = (n === 0);
+            filtersView.hidden = true;
+            confirmView.hidden = false;
+        }).catch(function () {
+            Craft.cp.displayError(Craft.t('easy-form', 'Could not count submissions.'));
+        });
+    });
+
+    document.getElementById('ef-confirm-delete').addEventListener('click', function () {
+        var btn = this;
+        btn.disabled = true;
+        var data = filters();
+        data.formId = current.id;
+        Craft.sendActionRequest('POST', 'easy-form/exports/delete', { data: data }).then(function (resp) {
+            Craft.cp.displayNotice(Craft.t('easy-form', 'Deleted {n} submission(s).', { n: resp.data.deleted }));
+            window.location.reload();
+        }).catch(function () {
+            btn.disabled = false;
+            Craft.cp.displayError(Craft.t('easy-form', 'Could not delete submissions.'));
+        });
+    });
+})();
+{% endjs %}
+
+{% css %}
+.ef-exports { --ef-blue: #2160e6; --ef-blue-dark: #1b4fc0; }
+#content.content-pane:has(.ef-exports) { background: transparent; box-shadow: none; padding: 0; border: 0; border-radius: 0; }
+.ef-exports .ef-table-wrap { box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 6px 16px rgba(16,24,40,.05); }
+.ef-exports-intro { margin: 0 0 18px; }
+
+/* ── Toolbar ───────────────────────────────────────────────── */
+.ef-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.ef-search { position: relative; flex: 1 1 320px; max-width: 420px; }
+.ef-search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--light-text-color, #8893a2); pointer-events: none; font-size: 14px; }
+.ef-search input { width: 100%; height: 34px; padding: 0 12px 0 32px; border: 1px solid var(--hairline-color, #e3e8ef); border-radius: 11px; background: var(--white, #fff); color: var(--text-color, #1d2530); font-size: 14px; box-shadow: none; }
+.ef-search input:focus { outline: none; border-color: var(--ef-blue); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ef-blue) 20%, transparent); }
+.ef-clear-link { color: var(--light-text-color, #8893a2); font-size: 13px; padding: 0 4px; }
+.ef-clear-link:hover { color: var(--ef-blue); }
+
+/* ── Table ─────────────────────────────────────────────────── */
+.ef-table-wrap { border: 1px solid var(--hairline-color, #e3e8ef); border-radius: 16px; overflow: hidden; background: var(--white, #fff); }
+.ef-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ef-table thead th { text-align: left; padding: 10px 16px; background: var(--gray-050, #f4f6f9); border-bottom: 1px solid var(--hairline-color, #e3e8ef); color: var(--light-text-color, #8893a2); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.ef-table tbody td { padding: 12px 16px; border-bottom: 1px solid var(--hairline-color, #e3e8ef); vertical-align: middle; }
+.ef-table tbody tr:last-child td { border-bottom: 0; }
+.ef-table tbody tr { transition: background-color .08s ease; }
+.ef-table tbody tr:hover { background: var(--gray-050, #f4f6f9); }
+
+.ef-cell-subs { color: var(--medium-text-color, #5a6573); }
+.ef-form-name { display: block; color: var(--text-color, #1d2530); font-weight: 600; }
+.ef-form-handle { display: block; margin-top: 2px; color: var(--light-text-color, #8893a2); font-size: 12px; font-family: var(--monospace-font, ui-monospace, monospace); }
+.ef-col-actions { width: 220px; text-align: right; white-space: nowrap; }
+.ef-col-actions .btn + .btn { margin-left: 6px; }
+.btn.ef-danger-btn { color: #b32328; }
+.btn.ef-danger-btn:hover { background: #fdeaea; }
+
+/* ── Pagination ────────────────────────────────────────────── */
+.ef-pagination { display: flex; justify-content: center; gap: 4px; margin-top: 20px; }
+.ef-page { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid var(--hairline-color, #e3e8ef); border-radius: 9px; background: var(--white, #fff); color: var(--text-color, #1d2530); font-size: 13px; }
+.ef-page:hover { border-color: var(--ef-blue); color: var(--ef-blue); }
+.ef-page.is-active { background: var(--ef-blue); border-color: var(--ef-blue); color: #fff; }
+.ef-page-gap { display: inline-flex; align-items: center; padding: 0 4px; color: var(--light-text-color, #8893a2); }
+
+/* ── Empty state ───────────────────────────────────────────── */
+.ef-empty-state { text-align: center; padding: 60px 20px; border: 1px dashed var(--hairline-color, #e3e8ef); border-radius: 16px; background: var(--gray-050, #f9fafc); }
+.ef-empty-icon { font-size: 30px; color: var(--light-text-color, #c4ccd8); }
+.ef-empty-title { margin: 12px 0 16px; color: var(--medium-text-color, #5a6573); font-size: 15px; }
+
+/* ── Filter / action modal ─────────────────────────────────── */
+.ef-modal[hidden] { display: none; }
+.ef-modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; }
+.ef-modal-backdrop { position: absolute; inset: 0; background: rgba(16,24,40,.45); }
+.ef-modal-box { position: relative; width: 420px; max-width: 92vw; background: var(--white, #fff); border-radius: 14px; padding: 22px 24px; box-shadow: 0 12px 40px rgba(16,24,40,.25); }
+.ef-modal-box h2 { margin: 0 0 2px; font-size: 18px; }
+.ef-modal-box .field { margin-top: 14px; }
+.ef-modal-dates { display: flex; gap: 12px; margin-top: 14px; align-items: flex-start; }
+.ef-modal-dates .field { flex: 1; margin-top: 0; }
+.ef-modal-box .buttons { margin-top: 22px; display: flex; gap: 10px; justify-content: flex-end; }
+.ef-modal-box .buttons [hidden] { display: none; }
+.ef-danger-submit { background: #c4332e !important; }
+.ef-danger-submit:hover { background: #a82a26 !important; }
+.ef-confirm-warn { color: #b32328; font-size: 13px; margin: 4px 0 0; }
+.ef-modal-columns { margin-top: 14px; }
+.ef-modal-columns[hidden] { display: none; }
+.ef-keep-export { display: flex; gap: 9px; align-items: flex-start; margin-top: 16px; font-size: 13px; cursor: pointer; }
+.ef-keep-export[hidden] { display: none; }
+.ef-keep-export input { margin-top: 2px; }
+.ef-keep-hint { display: block; margin-top: 2px; color: #8893a2; font-size: 12px; }
+.ef-modal-columns > .heading { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.ef-modal-columns > .heading label { font-weight: 600; }
+.ef-cols-link { color: #2160e6; background: none; border: 0; padding: 0; cursor: pointer; font-size: 12px; }
+.ef-cols-link:hover { text-decoration: underline; }
+.ef-cols-sep { color: #8893a2; margin: 0 4px; font-size: 12px; }
+.ef-cols-list { max-height: 220px; overflow-y: auto; border: 1px solid #e3e8ef; border-radius: 10px; padding: 8px 12px; background: #f9fafc; }
+.ef-cols-group-label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #8893a2; margin: 10px 0 4px; }
+.ef-cols-group-label:first-child { margin-top: 0; }
+/* width:100% is required — Craft's CP label styles otherwise shrink-wrap this
+   block-level flex row, squeezing the text span to a few px and wrapping it. */
+.ef-col-check { display: flex; align-items: center; gap: 8px; width: 100%; padding: 3px 0; font-size: 13px; color: #1d2530; cursor: pointer; }
+.ef-col-check input { margin: 0; }
+.ef-col-check span { min-width: 0; }
+.ef-cols-list .light { color: #8893a2; margin: 4px 0; }
+.ef-cols-list .error { color: #b32328; margin: 4px 0; }
+{% endcss %}

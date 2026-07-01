@@ -1,0 +1,43 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Agree Required",
+    "handle": "e2eAgreeRequired",
+    "description": "Required consent: server rejects unless the checked value is submitted (e2e).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "email", "label": "Email", "handle": "email", "required": true },
+                {
+                  "id": "f2",
+                  "type": "agree",
+                  "label": "Terms",
+                  "handle": "terms",
+                  "required": true,
+                  "agreeText": "I accept the terms",
+                  "siteAgreeDefault": { "default": "0" },
+                  "siteAgreeChecked": { "default": "Accept" },
+                  "siteAgreeUnchecked": { "default": "Decline" }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email" }
+    },
+    "enabled": true,
+    "captchaProvider": null,
+    "notificationSettings": []
+  }
+}

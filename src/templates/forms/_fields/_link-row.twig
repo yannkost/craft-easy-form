@@ -1,0 +1,51 @@
+{# One link row for the agree field's per-site link list.
+
+   A row pairs a phrase ("Text to link") with a target — a linked Entry
+   (preferred) or a custom URL. Reused in two places, so the markup stays in
+   sync: rendered for each saved row in _field-in-row.twig, and rendered alone
+   by FormsController::actionLinkRow when the user clicks "Add link" (the
+   returned head/body HTML inits Craft's element select without a save).
+
+   Variables:
+   - fieldPrefix: the field's input-name prefix (pages[..][rows][..][fields][..]).
+   - linkSite:    the site handle this row belongs to.
+   - linkIndex:   this row's index within the site's list.
+   - link:        { text, entryId, url } (optional; empty for a fresh row).
+#}
+{% import '_includes/forms' as forms %}
+
+{% set link = link|default({}) %}
+{% set entryId = link.entryId ?? null %}
+{% set selectedEntry = entryId ? craft.entries.id(entryId).status(null).all() : [] %}
+{% set selId = (fieldPrefix ~ '-links-' ~ linkSite ~ '-' ~ linkIndex)|replace({'[': '-', ']': ''}) %}
+
+<div class="ef-link-row" data-link-index="{{ linkIndex }}">
+    <input type="text"
+        name="{{ fieldPrefix }}[links][{{ linkSite }}][{{ linkIndex }}][text]"
+        value="{{ link.text ?? '' }}"
+        placeholder="{{ 'Text to link'|t('easy-form') }}"
+        class="text ef-link-text"
+        title="{{ 'The phrase within the label that becomes this link.'|t('easy-form') }}">
+
+    <div class="ef-link-entry">
+        {{ forms.elementSelect({
+            id: selId,
+            name: fieldPrefix ~ '[links][' ~ linkSite ~ '][' ~ linkIndex ~ '][entryId]',
+            elements: selectedEntry,
+            elementType: 'craft\\elements\\Entry',
+            limit: 1,
+            selectionLabel: 'Link Entry'|t('easy-form')
+        }) }}
+    </div>
+
+    <input type="text"
+        name="{{ fieldPrefix }}[links][{{ linkSite }}][{{ linkIndex }}][url]"
+        value="{{ link.url ?? '' }}"
+        placeholder="{{ 'https://… or /path'|t('easy-form') }}"
+        class="text ef-link-url"
+        title="{{ 'Custom URL. If an entry is also chosen, the entry wins.'|t('easy-form') }}">
+
+    <button type="button" class="btn small remove-link-row" title="{{ 'Remove'|t('easy-form') }}">
+        <span data-icon="trash" aria-label="{{ 'Remove'|t('easy-form') }}"></span>
+    </button>
+</div>

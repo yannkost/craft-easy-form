@@ -1,0 +1,85 @@
+{% extends '_layouts/cp' %}
+
+{% set title = 'Export'|t('easy-form') %}
+{% set crumbs = [{ label: 'Exports'|t('easy-form'), url: url('easy-form/exports') }] %}
+
+{% block content %}
+<div class="ef-export-status" data-token="{{ token }}">
+    <div class="ef-export-preparing">
+        <p><span class="spinner"></span> {{ 'Preparing your export… this can take a moment for large datasets.'|t('easy-form') }}</p>
+        <p class="light">{{ 'You can switch to another tab — the tab title updates to “Export ready” and the download starts as soon as this tab is in focus. You can also download it manually below once it’s ready.'|t('easy-form') }}</p>
+    </div>
+    <div class="ef-export-ready hidden">
+        <p>{{ 'Your export is ready.'|t('easy-form') }}</p>
+        <a class="btn submit ef-export-download" href="#" data-icon="download">{{ 'Download CSV'|t('easy-form') }}</a>
+    </div>
+    <div class="ef-export-failed hidden">
+        <p class="error ef-export-error">{{ 'The export could not be generated.'|t('easy-form') }}</p>
+        <a class="btn" href="{{ url('easy-form/exports') }}">{{ 'Back to exports'|t('easy-form') }}</a>
+    </div>
+</div>
+{% endblock %}
+
+{% js %}
+(function () {
+    var root = document.querySelector('.ef-export-status');
+    if (!root) return;
+    var token = root.dataset.token;
+    var preparing = root.querySelector('.ef-export-preparing');
+    var ready = root.querySelector('.ef-export-ready');
+    var failed = root.querySelector('.ef-export-failed');
+    var dl = root.querySelector('.ef-export-download');
+    var tries = 0, MAX = 1800; // ~1h; background tabs throttle timers, so allow plenty
+    var originalTitle = document.title;
+    var downloaded = false;
+
+    function show(el) {
+        [preparing, ready, failed].forEach(function (e) { e.classList.add('hidden'); });
+        el.classList.remove('hidden');
+    }
+    function fail(msg) {
+        if (msg) root.querySelector('.ef-export-error').textContent = msg;
+        show(failed);
+    }
+    function again() { if (++tries < MAX) { setTimeout(poll, 2000); } else { fail(); } }
+
+    // Auto-start the download, but only while the tab is focused: browsers
+    // swallow a programmatic download in a background tab (the file is ready on
+    // the server, but nothing happens). If we're hidden, flag the tab title so
+    // the user notices and retry the moment they return. The visible "Download
+    // CSV" button is always the guaranteed manual fallback.
+    function triggerDownload() {
+        if (downloaded) return;
+        if (document.visibilityState === 'visible') {
+            downloaded = true;
+            document.title = originalTitle;
+            dl.click();
+        } else {
+            document.title = '✓ ' + Craft.t('easy-form', 'Export ready') + ' — ' + originalTitle;
+            document.addEventListener('visibilitychange', function onVis() {
+                if (document.visibilityState === 'visible') {
+                    document.removeEventListener('visibilitychange', onVis);
+                    triggerDownload();
+                }
+            });
+        }
+    }
+
+    function poll() {
+        Craft.sendActionRequest('GET', 'easy-form/submissions/export-check', { params: { key: token } })
+            .then(function (resp) {
+                var d = (resp && resp.data) || {};
+                if (d.ready) {
+                    dl.setAttribute('href', d.downloadUrl);
+                    show(ready);
+                    triggerDownload();
+                    return;
+                }
+                if (d.failed) { fail(d.message); return; }
+                again();
+            })
+            .catch(again);
+    }
+    poll();
+})();
+{% endjs %}

@@ -1,0 +1,695 @@
+{% import '_includes/forms' as forms %}
+{% import 'easy-form/forms/_localized.twig' as loc %}
+
+{# One per-site row of the agree "Checkbox values" table (default state +
+   checked/unchecked meaning). Shared by the primary row and the collapsible
+   "Translations" rows; the JS builder mirrors this in field-manager.js. #}
+{% macro agreeRow(site, field, fieldPrefix) %}
+    {% set agDef = field.siteAgreeDefault[site.handle] ?? '0' %}
+    <div class="ef-agree-srow">
+        <div class="ef-agree-sname">{{ site.name }} <span>({{ site.handle }})</span></div>
+        <div class="ef-agree-controls">
+            <label class="ef-agree-ctl">
+                <span>{{ 'Default'|t('easy-form') }}</span>
+                <div class="select"><select name="{{ fieldPrefix }}[siteAgreeDefault][{{ site.handle }}]">
+                    <option value="0"{{ agDef != '1' ? ' selected' }}>{{ 'Unchecked'|t('easy-form') }}</option>
+                    <option value="1"{{ agDef == '1' ? ' selected' }}>{{ 'Checked'|t('easy-form') }}</option>
+                </select></div>
+            </label>
+            <label class="ef-agree-ctl">
+                <span>{{ 'Checked ='|t('easy-form') }}</span>
+                <input type="text" class="text" name="{{ fieldPrefix }}[siteAgreeChecked][{{ site.handle }}]" value="{{ field.siteAgreeChecked[site.handle] ?? '' }}" placeholder="{{ 'e.g. Yes'|t('easy-form') }}">
+            </label>
+            <label class="ef-agree-ctl">
+                <span>{{ 'Unchecked ='|t('easy-form') }}</span>
+                <input type="text" class="text" name="{{ fieldPrefix }}[siteAgreeUnchecked][{{ site.handle }}]" value="{{ field.siteAgreeUnchecked[site.handle] ?? '' }}" placeholder="{{ 'e.g. No'|t('easy-form') }}">
+            </label>
+        </div>
+    </div>
+{% endmacro %}
+
+{# Per-site link list for the agree field: each row pairs a phrase to link with
+   a target (Entry preferred, else custom URL). Shown for the primary site inline
+   and for each other site under the collapsible "Other sites". New rows are added
+   via FormsController::actionLinkRow so the Entry picker works before saving. #}
+{% macro linkControls(site, field, fieldPrefix, isPrimary) %}
+    {% set links = (field.links ?? {})[site.handle] ?? [] %}
+    <div class="ef-link-site">
+        <div class="ef-link-sname">{{ site.name }} <span>({{ site.handle }})</span></div>
+        <div class="ef-link-list" data-field-prefix="{{ fieldPrefix }}" data-site="{{ site.handle }}" data-next-index="{{ links|length }}">
+            {% for link in links %}
+                {% include 'easy-form/forms/_fields/_link-row' with {
+                    fieldPrefix: fieldPrefix,
+                    linkSite: site.handle,
+                    linkIndex: loop.index0,
+                    link: link
+                } %}
+            {% endfor %}
+        </div>
+        <button type="button" class="btn add-link-row" data-field-prefix="{{ fieldPrefix }}" data-site="{{ site.handle }}">{{ 'Add link'|t('easy-form') }}</button>
+    </div>
+{% endmacro %}
+
+{% set pageIndex = pageIndex|default(0) %}
+{% set fieldPrefix = 'pages[' ~ pageIndex ~ '][rows][' ~ rowIndex ~ '][fields][' ~ fieldIndex ~ ']' %}
+<div class="field-in-row" data-field-index="{{ fieldIndex }}" data-page-index="{{ pageIndex }}" data-field-type="{{ field.type ?? 'text' }}">
+    <div class="field-in-row-header">
+        <div class="field-in-row-handle">
+            <span class="move icon" title="{{ 'Reorder'|t('app') }}"></span>
+        </div>
+        <div class="field-in-row-label">
+            <strong class="field-label-text">{{ field.label ?: 'New Field'|t('easy-form') }}</strong>
+            {% if field.required ?? false %}<span class="required-indicator">*</span>{% endif %}
+            <span class="field-type-badge">{{ field.type|upper }}</span>
+        </div>
+        <div class="field-in-row-actions">
+            <button type="button" class="ef-quick-required{{ (field.required ?? false) ? ' is-on' : '' }}" data-hide-for-types="heading,divider,callout,paragraph" aria-pressed="{{ (field.required ?? false) ? 'true' : 'false' }}" title="{{ 'Toggle required'|t('easy-form') }}">
+                <span class="ef-quick-required-star" aria-hidden="true">*</span>{{ 'Required'|t('easy-form') }}
+            </button>
+            <button type="button" class="btn small toggle-field-settings" title="{{ 'Settings'|t('app') }}">
+                <span class="icon settings"></span>
+            </button>
+            <button type="button" class="btn small delete-field" title="{{ 'Delete'|t('app') }}">
+                <span data-icon="trash" aria-label="{{ 'Delete'|t('app') }}"></span>
+            </button>
+        </div>
+    </div>
+    
+    <div class="field-popover-backdrop" style="display: none;">
+    <div class="field-in-row-settings">
+        <div class="field-popover-header">
+            <strong>{{ field.label ?: 'New Field'|t('easy-form') }}</strong>
+            <span class="field-type-badge">{{ field.type|upper }}</span>
+            <button type="button" class="field-popover-close" title="{{ 'Close'|t('app') }}">&times;</button>
+        </div>
+        <input type="hidden" name="{{ fieldPrefix }}[id]" value="{{ field.id ?? 'field_' ~ pageIndex ~ '_' ~ rowIndex ~ '_' ~ fieldIndex }}">
+        <input type="hidden" name="{{ fieldPrefix }}[type]" value="{{ field.type ?? 'text' }}">
+
+        {# Field Settings Tabs #}
+        <nav class="ef-tabs">
+            <a class="ef-tab active" data-tab="general">{{ 'General'|t('easy-form') }}</a>
+            <a class="ef-tab" data-tab="content" data-show-for-types="heading,callout,paragraph">{{ 'Content'|t('easy-form') }}</a>
+            <a class="ef-tab" data-tab="required" data-hide-for-types="heading,divider,callout,paragraph">{{ 'Required'|t('easy-form') }}</a>
+            <a class="ef-tab" data-tab="validation" data-show-for-types="text,textarea,email,tel,url,number,file">{{ 'Validation & Error Messages'|t('easy-form') }}</a>
+            <a class="ef-tab" data-tab="link" data-show-for-types="agree">{{ 'Link'|t('easy-form') }}</a>
+            <a class="ef-tab" data-tab="help" data-hide-for-types="heading,divider,callout,paragraph,hidden">{{ 'Help message'|t('easy-form') }}</a>
+            <a class="ef-tab" data-tab="values" data-show-for-types="select,checkboxes">{{ 'Values'|t('easy-form') }}</a>
+            <a class="ef-tab" data-tab="conditions">{{ 'Conditions'|t('easy-form') }}</a>
+            <a class="ef-tab" data-tab="advanced">{{ 'ID/Classes'|t('easy-form') }}</a>
+            {% if craft.app.sites.allSites|length > 1 %}<a class="ef-tab" data-tab="sites">{{ 'Sites'|t('easy-form') }}</a>{% endif %}
+        </nav>
+
+        {# General Tab #}
+        <div class="field-settings-pane" data-pane="general">
+            {{ loc.field({
+                label: 'Label'|t('easy-form'),
+                baseName: fieldPrefix ~ '[label]',
+                baseValue: field.label ?? '',
+                mapName: fieldPrefix ~ '[siteLabels]',
+                mapValues: field.siteLabels ?? {},
+                inputClass: 'field-label-input',
+                required: true
+            }) }}
+
+            {{ forms.textField({
+                label: 'Handle'|t('easy-form'),
+                instructions: 'How you\'ll access this field value in templates.'|t('easy-form'),
+                name: fieldPrefix ~ '[handle]',
+                value: field.handle ?? '',
+                class: 'code field-handle-input',
+                required: true
+            }) }}
+
+            {# Placeholder — not for file/hidden or date/time inputs (they ignore it). #}
+            <div data-hide-for-types="heading,divider,callout,paragraph,file,hidden,date,datetime,time,agree,checkboxes">
+                {% if (field.type ?? 'text') == 'textarea' %}
+                    {{ forms.textareaField({
+                        label: 'Placeholder'|t('easy-form'),
+                        name: fieldPrefix ~ '[placeholder]',
+                        value: field.placeholder ?? '',
+                        rows: 2
+                    }) }}
+                {% else %}
+                    {{ forms.textField({
+                        label: 'Placeholder'|t('easy-form'),
+                        name: fieldPrefix ~ '[placeholder]',
+                        value: field.placeholder ?? ''
+                    }) }}
+                {% endif %}
+            </div>
+
+            {# Default value — rendered per field type so the value is always valid.
+               date/time/datetime use the native picker; presentational + file get
+               none; everything else gets a (translatable) text/textarea default. #}
+            {% set ftDefault = field.type ?? 'text' %}
+            {% if ftDefault in ['date', 'datetime', 'time'] %}
+                {{ forms.textField({
+                    label: 'Default value'|t('easy-form'),
+                    instructions: 'Pre-fills the field. Pick a value so it’s stored in the format this input expects.'|t('easy-form'),
+                    name: fieldPrefix ~ '[defaultValue]',
+                    value: field.defaultValue ?? '',
+                    type: { date: 'date', datetime: 'datetime-local', time: 'time' }[ftDefault]
+                }) }}
+            {% elseif ftDefault not in ['heading', 'divider', 'callout', 'paragraph', 'file', 'agree', 'select', 'checkboxes'] %}
+                {# select/checkboxes set their default via the "*" marker in the
+                   Options list (Values tab), not a free-text default value. #}
+                {{ loc.field({
+                    label: 'Default value'|t('easy-form'),
+                    instructions: 'Pre-fills the field (and the stored value for hidden fields).'|t('easy-form'),
+                    type: ftDefault == 'textarea' ? 'textarea' : 'text',
+                    rows: 3,
+                    baseName: fieldPrefix ~ '[defaultValue]',
+                    baseValue: field.defaultValue ?? '',
+                    mapName: fieldPrefix ~ '[siteDefaultValues]',
+                    mapValues: field.siteDefaultValues ?? {}
+                }) }}
+            {% endif %}
+
+            {# Agree: per-language default state + what each state means (the stored value).
+               Primary site shown; other sites collapse under a "Translations" toggle,
+               mirroring the localized text fields. #}
+            {% set agSites = craft.app.sites.getAllSites() %}
+            {% set agPrimary = (agSites|filter(s => s.primary)|first)|default(agSites|first) %}
+            {% set agOthers = agSites|filter(s => s.handle != agPrimary.handle)|values %}
+            <div class="ef-agree-values" data-show-for-types="agree">
+                <div class="field"><div class="heading">
+                    <label>{{ 'Checkbox values'|t('easy-form') }}</label>
+                    <div class="instructions"><p>{{ 'For each language: the default state, and what “checked” and “unchecked” mean. The meaning is what gets stored on submit.'|t('easy-form') }}</p></div>
+                </div></div>
+                {{ _self.agreeRow(agPrimary, field, fieldPrefix) }}
+                {% if agOthers|length %}
+                    <button type="button" class="ef-localized-toggle" aria-expanded="false"><span class="ef-localized-caret" aria-hidden="true"></span><span class="ef-localized-globe" aria-hidden="true"></span>{{ 'Translations'|t('easy-form') }} <span class="ef-localized-count">{{ agOthers|length }} {{ agOthers|length == 1 ? 'site'|t('easy-form') : 'sites'|t('easy-form') }}</span></button>
+                    <div class="ef-localized-others" hidden>
+                        {% for s in agOthers %}{{ _self.agreeRow(s, field, fieldPrefix) }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <p class="light" data-show-for-types="heading" style="display:none;">{{ 'The Label above is the text shown on the form (use Translations for other sites).'|t('easy-form') }}</p>
+            <p class="light" data-show-for-types="paragraph,callout" style="display:none;">{{ 'The Label is only an internal name shown here in the builder. Enter the text shown on the form on the Content tab.'|t('easy-form') }}</p>
+            <p class="light" data-show-for-types="divider" style="display:none;">{{ 'A divider has no settings — it renders a horizontal rule.'|t('easy-form') }}</p>
+        </div>
+
+        {# Content Tab (presentational types) #}
+        <div class="field-settings-pane" data-pane="content" style="display: none;">
+            <div data-show-for-types="heading">
+                {{ forms.selectField({
+                    label: 'Heading Level'|t('easy-form'),
+                    name: fieldPrefix ~ '[headingLevel]',
+                    value: field.headingLevel ?? 'h3',
+                    options: [
+                        { label: 'H2', value: 'h2' },
+                        { label: 'H3', value: 'h3' },
+                        { label: 'H4', value: 'h4' }
+                    ]
+                }) }}
+            </div>
+            <div data-show-for-types="callout">
+                {{ forms.selectField({
+                    label: 'Style'|t('easy-form'),
+                    name: fieldPrefix ~ '[calloutStyle]',
+                    value: field.calloutStyle ?? 'info',
+                    options: [
+                        { label: 'Info'|t('easy-form'), value: 'info' },
+                        { label: 'Warning'|t('easy-form'), value: 'warning' },
+                        { label: 'Success'|t('easy-form'), value: 'success' },
+                        { label: 'Error'|t('easy-form'), value: 'error' }
+                    ]
+                }) }}
+                {{ forms.textField({
+                    label: 'Accent Color'|t('easy-form'),
+                    instructions: 'Optional hex color (e.g. #2160e6) overriding the style\'s accent.'|t('easy-form'),
+                    name: fieldPrefix ~ '[calloutColor]',
+                    value: field.calloutColor ?? '',
+                    placeholder: '#2160e6'
+                }) }}
+            </div>
+            <div data-show-for-types="paragraph,callout">
+                {{ loc.field({
+                    label: 'Content'|t('easy-form'),
+                    instructions: 'The text shown on the form. Line breaks are preserved.'|t('easy-form'),
+                    type: 'textarea',
+                    rows: 4,
+                    baseName: fieldPrefix ~ '[content]',
+                    baseValue: field.content ?? '',
+                    mapName: fieldPrefix ~ '[siteContent]',
+                    mapValues: field.siteContent ?? {}
+                }) }}
+            </div>
+        </div>
+
+
+        {# Help Tab #}
+        <div class="field-settings-pane" data-pane="help" style="display: none;">
+            {{ loc.field({
+                label: 'Help text'|t('easy-form'),
+                instructions: 'Optional hint shown under the field on the front end.'|t('easy-form'),
+                type: 'textarea',
+                rows: 2,
+                baseName: fieldPrefix ~ '[helpText]',
+                baseValue: field.helpText ?? '',
+                mapName: fieldPrefix ~ '[siteHelpTexts]',
+                mapValues: field.siteHelpTexts ?? {}
+            }) }}
+        </div>
+
+        {# Values Tab #}
+        <div class="field-settings-pane" data-pane="values" style="display: none;">
+            <div class="field-setting-multiple">
+                {{ forms.lightswitchField({
+                    label: 'Allow Multiple Selection'|t('easy-form'),
+                    instructions: 'Allow users to select multiple options. If disabled for Checkboxes, this will render as Radio Buttons.'|t('easy-form'),
+                    name: fieldPrefix ~ '[multiple]',
+                    on: field.multiple ?? (field.type == 'checkboxes' ? true : false)
+                }) }}
+            </div>
+
+            <div class="validation-options-fields" style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e3e5e8;">
+                {{ loc.field({
+                    label: 'Options'|t('easy-form'),
+                    instructions: 'One per line. Format: "value:label" or just "value". Prefix a line with * to pre-select it by default (e.g. *pro:Pro); mark several lines for a multi-select.'|t('easy-form'),
+                    type: 'textarea',
+                    rows: 4,
+                    mapName: fieldPrefix ~ '[siteOptions]',
+                    mapValues: field.siteOptions ?? {},
+                    placeholder: field.options ?? '',
+                    othersFallback: 'placeholder'
+                }) }}
+            </div>
+        </div>
+
+        {# Required Tab #}
+        <div class="field-settings-pane" data-pane="required" style="display: none;">
+            {{ forms.lightswitchField({
+                label: 'Required'|t('easy-form'),
+                name: fieldPrefix ~ '[required]',
+                on: field.required ?? false
+            }) }}
+
+            {# Hidden fields can be required, but have no visible message to show. #}
+            <div class="validation-required-messages" data-hide-for-types="hidden" style="margin-top: 20px;">
+                {{ loc.field({
+                    label: 'Required error message'|t('easy-form'),
+                    instructions: 'Shown if the field is left empty. Leave blank for the default.'|t('easy-form'),
+                    mapName: fieldPrefix ~ '[siteRequiredMessages]',
+                    mapValues: field.siteRequiredMessages ?? {},
+                    placeholder: (field.label ?? 'This field') ~ ' is required',
+                    othersFallback: 'placeholder'
+                }) }}
+            </div>
+        </div>
+
+        {# Validation Tab #}
+        <div class="field-settings-pane" data-pane="validation" style="display: none;">
+            {# Unique constraint (single-value scalar fields) #}
+            <div class="validation-unique-field" data-show-for-types="text,email,tel,url,number">
+                {{ forms.lightswitchField({
+                    label: 'Must be unique'|t('easy-form'),
+                    instructions: 'Reject the submission if another submission of this form already has the same value here (e.g. one entry per email). Empty values aren\'t checked.'|t('easy-form'),
+                    name: fieldPrefix ~ '[unique]',
+                    on: field.unique ?? false
+                }) }}
+                <div style="margin-top: 20px;">
+                    {{ loc.field({
+                        label: 'Unique error message'|t('easy-form'),
+                        instructions: 'Shown when the value is already used. Leave blank for the default.'|t('easy-form'),
+                        mapName: fieldPrefix ~ '[siteUniqueMessages]',
+                        mapValues: field.siteUniqueMessages ?? {},
+                        placeholder: (field.label ?? 'This value') ~ ' has already been used.',
+                        othersFallback: 'placeholder'
+                    }) }}
+                </div>
+            </div>
+
+            {# Min/Max Length for text-based fields #}
+            <div class="validation-length-fields" data-show-for-types="text,textarea,tel,url">
+                {{ forms.textField({
+                    label: 'Min Length'|t('easy-form'),
+                    instructions: 'Minimum number of characters.'|t('easy-form'),
+                    name: fieldPrefix ~ '[minLength]',
+                    value: field.minLength ?? '',
+                    type: 'number',
+                    min: 0
+                }) }}
+
+                {{ forms.textField({
+                    label: 'Max Length'|t('easy-form'),
+                    instructions: 'Maximum number of characters.'|t('easy-form'),
+                    name: fieldPrefix ~ '[maxLength]',
+                    value: field.maxLength ?? '',
+                    type: 'number',
+                    min: 0
+                }) }}
+
+                <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e3e5e8;">
+                    {{ loc.field({
+                        label: 'Min length error message'|t('easy-form'),
+                        instructions: 'Shown when the value is shorter than the minimum. Leave blank for the default.'|t('easy-form'),
+                        mapName: fieldPrefix ~ '[siteMinLengthMessages]',
+                        mapValues: field.siteMinLengthMessages ?? {},
+                        placeholder: 'Value is too short'|t('easy-form'),
+                        othersFallback: 'placeholder'
+                    }) }}
+
+                    {{ loc.field({
+                        label: 'Max length error message'|t('easy-form'),
+                        instructions: 'Shown when the value is longer than the maximum. Leave blank for the default.'|t('easy-form'),
+                        mapName: fieldPrefix ~ '[siteMaxLengthMessages]',
+                        mapValues: field.siteMaxLengthMessages ?? {},
+                        placeholder: 'Value is too long'|t('easy-form'),
+                        othersFallback: 'placeholder'
+                    }) }}
+                </div>
+            </div>
+
+            {# Scheme requirement for URL fields #}
+            <div class="validation-url-fields" data-show-for-types="url">
+                {{ forms.lightswitchField({
+                    label: 'Require a URL scheme'|t('easy-form'),
+                    instructions: 'When on, the value must start with `http://` or `https://` and the field shows a hint. When off, entries like `example.com` are accepted.'|t('easy-form'),
+                    name: fieldPrefix ~ '[requireScheme]',
+                    on: field.requireScheme ?? false
+                }) }}
+            </div>
+
+            {# Min/Max Value for number fields #}
+            <div class="validation-value-fields" data-show-for-types="number">
+                {{ forms.textField({
+                    label: 'Min Value'|t('easy-form'),
+                    instructions: 'Minimum numeric value.'|t('easy-form'),
+                    name: fieldPrefix ~ '[min]',
+                    value: field.min ?? '',
+                    type: 'number'
+                }) }}
+
+                {{ forms.textField({
+                    label: 'Max Value'|t('easy-form'),
+                    instructions: 'Maximum numeric value.'|t('easy-form'),
+                    name: fieldPrefix ~ '[max]',
+                    value: field.max ?? '',
+                    type: 'number'
+                }) }}
+
+                {{ forms.textField({
+                    label: 'Decimal places'|t('easy-form'),
+                    instructions: 'Leave empty to allow any. 0 = whole numbers only.'|t('easy-form'),
+                    name: fieldPrefix ~ '[decimals]',
+                    value: field.decimals ?? '',
+                    type: 'number',
+                    min: 0
+                }) }}
+
+                <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e3e5e8;">
+                    {{ loc.field({
+                        label: 'Min value error message'|t('easy-form'),
+                        instructions: 'Shown when the entered value is below the minimum.'|t('easy-form'),
+                        mapName: fieldPrefix ~ '[siteMinMessages]',
+                        mapValues: field.siteMinMessages ?? {},
+                        placeholder: 'Value is too low'|t('easy-form'),
+                        othersFallback: 'placeholder'
+                    }) }}
+
+                    {{ loc.field({
+                        label: 'Max value error message'|t('easy-form'),
+                        instructions: 'Shown when the entered value is above the maximum.'|t('easy-form'),
+                        mapName: fieldPrefix ~ '[siteMaxMessages]',
+                        mapValues: field.siteMaxMessages ?? {},
+                        placeholder: 'Value is too high'|t('easy-form'),
+                        othersFallback: 'placeholder'
+                    }) }}
+                </div>
+            </div>
+
+            {# Invalid-format message for email fields #}
+            <div class="validation-email-fields" data-show-for-types="email">
+                {{ loc.field({
+                    label: 'Invalid email error message'|t('easy-form'),
+                    instructions: 'Shown when the field is filled out but is not a valid email address.'|t('easy-form'),
+                    mapName: fieldPrefix ~ '[siteInvalidMessages]',
+                    mapValues: field.siteInvalidMessages ?? {},
+                    placeholder: 'Please enter a valid email address'|t('easy-form'),
+                    othersFallback: 'placeholder'
+                }) }}
+            </div>
+
+            {# File upload settings #}
+            
+            <div class="validation-file-fields" data-show-for-types="file">
+                {{ forms.textField({
+                    label: 'Max File Size (MB)'|t('easy-form'),
+                    instructions: 'Maximum size per file in megabytes. Leave empty to use the global setting.'|t('easy-form'),
+                    name: fieldPrefix ~ '[maxFileSize]',
+                    value: field.maxFileSize ?? '',
+                    type: 'number',
+                    min: 1,
+                    placeholder: '10'
+                }) }}
+
+                {{ forms.textField({
+                    label: 'Max Total Upload Size (MB)'|t('easy-form'),
+                    instructions: 'Maximum combined size of all files uploaded in this field. Leave empty for no combined limit (the per-file limit still applies).'|t('easy-form'),
+                    name: fieldPrefix ~ '[maxTotalSize]',
+                    value: field.maxTotalSize ?? '',
+                    type: 'number',
+                    min: 1,
+                    placeholder: '50'
+                }) }}
+
+                {{ forms.lightswitchField({
+                    label: 'Allow Multiple Files'|t('easy-form'),
+                    instructions: 'Allow users to upload multiple files.'|t('easy-form'),
+                    name: fieldPrefix ~ '[allowMultiple]',
+                    on: field.allowMultiple ?? false
+                }) }}
+
+                {{ forms.textField({
+                    label: 'Max number of files'|t('easy-form'),
+                    instructions: 'Caps how many files can be uploaded (the size limit above is per file). Only applies when “Allow Multiple Files” is on; leave empty for no limit.'|t('easy-form'),
+                    name: fieldPrefix ~ '[maxFiles]',
+                    value: field.maxFiles ?? '',
+                    type: 'number',
+                    min: 1,
+                    placeholder: '5'
+                }) }}
+
+                {{ forms.textField({
+                    label: 'Allowed File Types'|t('easy-form'),
+                    instructions: 'Comma-separated list of allowed file extensions (e.g., jpg,png,pdf). Leave empty to allow all types.'|t('easy-form'),
+                    name: fieldPrefix ~ '[allowedFileTypes]',
+                    value: field.allowedFileTypes ?? '',
+                    placeholder: 'jpg,png,pdf,doc,docx'
+                }) }}
+
+                <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e3e5e8;">
+                    {{ loc.field({
+                        label: 'File too large error message'|t('easy-form'),
+                        instructions: 'Shown when an uploaded file exceeds the maximum size.'|t('easy-form'),
+                        mapName: fieldPrefix ~ '[siteFileSizeMessages]',
+                        mapValues: field.siteFileSizeMessages ?? {},
+                        placeholder: 'File is too large'|t('easy-form'),
+                        othersFallback: 'placeholder'
+                    }) }}
+                </div>
+
+                <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e3e5e8;">
+                    <h6>{{ 'Hint labels'|t('easy-form') }}</h6>
+                    <p class="light" style="margin-top: -4px;">{{ 'Customise the helper text shown under the field. Use {n} for the number and {types} for the allowed extensions; leave empty to use the default.'|t('easy-form')|raw }}</p>
+
+                    {{ loc.field({
+                        label: 'Max file size hint'|t('easy-form'),
+                        instructions: 'Default: “Max size: {n} MB”.'|t('easy-form'),
+                        mapName: fieldPrefix ~ '[siteFileHintPerFile]',
+                        mapValues: field.siteFileHintPerFile ?? {},
+                        placeholder: 'Max size: {n} MB'|t('easy-form'),
+                        othersFallback: 'placeholder'
+                    }) }}
+
+                    {{ loc.field({
+                        label: 'Max total size hint'|t('easy-form'),
+                        instructions: 'Default: “Max total: {n} MB”.'|t('easy-form'),
+                        mapName: fieldPrefix ~ '[siteFileHintTotal]',
+                        mapValues: field.siteFileHintTotal ?? {},
+                        placeholder: 'Max total: {n} MB'|t('easy-form'),
+                        othersFallback: 'placeholder'
+                    }) }}
+
+                    {{ loc.field({
+                        label: 'File count hint'|t('easy-form'),
+                        instructions: 'Default: “Up to {n} files”.'|t('easy-form'),
+                        mapName: fieldPrefix ~ '[siteFileHintCount]',
+                        mapValues: field.siteFileHintCount ?? {},
+                        placeholder: 'Up to {n} files'|t('easy-form'),
+                        othersFallback: 'placeholder'
+                    }) }}
+
+                    {{ loc.field({
+                        label: 'Allowed types hint'|t('easy-form'),
+                        instructions: 'Default: “Allowed types: {types}”.'|t('easy-form'),
+                        mapName: fieldPrefix ~ '[siteFileHintTypes]',
+                        mapValues: field.siteFileHintTypes ?? {},
+                        placeholder: 'Allowed types: {types}'|t('easy-form'),
+                        othersFallback: 'placeholder'
+                    }) }}
+
+                    {{ loc.field({
+                        label: 'Upload prompt label'|t('easy-form'),
+                        instructions: 'The button shown to choose files. Default: “Choose file(s)”.'|t('easy-form'),
+                        mapName: fieldPrefix ~ '[siteFileHintPrompt]',
+                        mapValues: field.siteFileHintPrompt ?? {},
+                        placeholder: 'Choose file(s)'|t('easy-form'),
+                        othersFallback: 'placeholder'
+                    }) }}
+                </div>
+            </div>
+        </div>
+
+        {# Link Tab #}
+        <div class="field-settings-pane" data-pane="link" style="display: none;">
+            <div class="validation-agree-fields" data-show-for-types="agree">
+                {{ loc.field({
+                    label: 'Display Text'|t('easy-form'),
+                    instructions: 'The text to display next to the checkbox. If empty, the Label will be used.'|t('easy-form'),
+                    baseName: fieldPrefix ~ '[agreeText]',
+                    baseValue: field.agreeText ?? '',
+                    mapName: fieldPrefix ~ '[siteAgreeText]',
+                    mapValues: field.siteAgreeText ?? {},
+                    placeholder: 'e.g., I agree to the Privacy Policy'
+                }) }}
+
+                <div class="ef-info">{{ 'Turn words in the Display Text into links. Add a row per phrase, choose an Entry or a custom URL, and translate per site below.'|t('easy-form') }}</div>
+
+                {% set primarySite = craft.app.sites.primarySite %}
+                {% set otherLinkSites = craft.app.sites.allSites|filter(s => s.id != primarySite.id) %}
+                {{ _self.linkControls(primarySite, field, fieldPrefix, true) }}
+                {% if otherLinkSites|length %}
+                    {% set siteWord = otherLinkSites|length == 1 ? 'site'|t('easy-form') : 'sites'|t('easy-form') %}
+                    <button type="button" class="ef-localized-toggle" aria-expanded="false"><span class="ef-localized-caret" aria-hidden="true"></span><span class="ef-localized-globe" aria-hidden="true"></span>{{ 'Other sites'|t('easy-form') }} <span class="ef-localized-count">{{ otherLinkSites|length }} {{ siteWord }}</span></button>
+                    <div class="ef-localized-others" hidden>
+                        {% for s in otherLinkSites %}{{ _self.linkControls(s, field, fieldPrefix, false) }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Conditions Tab #}
+        <div class="field-settings-pane" data-pane="conditions" style="display: none;">
+            <div class="ef-info">{{ 'Show or hide this field based on the value of another field.'|t('easy-form') }}</div>
+            
+            {% set condAction = field.conditions.action|default('show') %}
+            {% set condLogic = field.conditions.logic|default('all') %}
+            {% set condRules = field.conditions.rules|default([]) %}
+
+            <div class="ef-cond-action-logic">
+            {{ forms.selectField({
+                label: 'Action'|t('easy-form'),
+                name: fieldPrefix ~ '[conditions][action]',
+                value: condAction,
+                options: [
+                    {label: 'Show this field when...'|t('easy-form'), value: 'show'},
+                    {label: 'Hide this field when...'|t('easy-form'), value: 'hide'}
+                ]
+            }) }}
+            {{ forms.selectField({
+                label: 'Logic'|t('easy-form'),
+                name: fieldPrefix ~ '[conditions][logic]',
+                value: condLogic,
+                options: [
+                    {label: 'All rules match (AND)'|t('easy-form'), value: 'all'},
+                    {label: 'Any rule matches (OR)'|t('easy-form'), value: 'any'}
+                ]
+            }) }}
+            <button type="button" class="btn add-condition-rule" data-field-prefix="{{ fieldPrefix }}">{{ 'Add Rule'|t('easy-form') }}</button>
+            </div>
+
+            <div class="condition-rules" data-field-prefix="{{ fieldPrefix }}">
+                {% for rule in condRules %}
+                    <div class="condition-rule" data-rule-index="{{ loop.index0 }}">
+                        <input type="text" name="{{ fieldPrefix ~ '[conditions][rules][' ~ loop.index0 ~ '][field]' }}" value="{{ rule.field|default('') }}" placeholder="{{ 'Field handle'|t('easy-form') }}" class="text ef-cond-field" list="ef-condition-handles">
+                        <select name="{{ fieldPrefix ~ '[conditions][rules][' ~ loop.index0 ~ '][operator]' }}" class="text ef-cond-operator">
+                            {% for op in [{v:'equals',l:'Equals'},{v:'notEquals',l:'Not Equals'},{v:'contains',l:'Contains'},{v:'notContains',l:'Not Contains'},{v:'isEmpty',l:'Is Empty'},{v:'isNotEmpty',l:'Is Not Empty'}] %}
+                                <option value="{{ op.v }}"{{ (rule.operator|default('equals')) == op.v ? ' selected' }}>{{ op.l|t('easy-form') }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" name="{{ fieldPrefix ~ '[conditions][rules][' ~ loop.index0 ~ '][value]' }}" value="{{ rule.value|default('') }}" placeholder="{{ 'Value'|t('easy-form') }}" class="text ef-cond-value">
+                        {% if craft.app.sites.allSites|length > 1 %}
+                            <select name="{{ fieldPrefix ~ '[conditions][rules][' ~ loop.index0 ~ '][site]' }}" class="text ef-cond-site" title="{{ 'Applies on'|t('easy-form') }}">
+                                <option value="all"{{ (rule.site|default('all')) == 'all' ? ' selected' }}>{{ 'All sites'|t('easy-form') }}</option>
+                                {% for s in craft.app.sites.allSites %}
+                                    <option value="{{ s.handle }}"{{ (rule.site|default('all')) == s.handle ? ' selected' }}>{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        {% endif %}
+                        <button type="button" class="btn small remove-condition-rule" title="{{ 'Remove'|t('easy-form') }}"><span data-icon="trash"></span></button>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# Advanced Tab #}
+        <div class="field-settings-pane" data-pane="advanced" style="display: none;">
+            {{ forms.textField({
+                label: 'Field ID'|t('easy-form'),
+                instructions: 'Applied to the input element itself. The field\'s `<label for>` is wired to match it. Defaults to `formId-handle` when left empty.'|t('easy-form'),
+                name: fieldPrefix ~ '[fieldId]',
+                value: field.fieldId ?? '',
+                class: 'code',
+                placeholder: 'e.g., email-input'
+            }) }}
+
+            {{ forms.textField({
+                label: 'CSS Classes'|t('easy-form'),
+                instructions: 'Added to the field container (`.easy-form-field`), not the input — styles the whole block (label, input and help text).'|t('easy-form'),
+                name: fieldPrefix ~ '[classList]',
+                value: field.classList ?? '',
+                class: 'code',
+                placeholder: 'e.g., form-control custom-input'
+            }) }}
+        </div>
+
+        {# Per-site structural localization: turn a site off to drop this field
+           from that site's form (render, validation and storage). #}
+        {% if craft.app.sites.allSites|length > 1 %}
+        <div class="field-settings-pane" data-pane="sites" style="display: none;">
+            <div class="ef-site-enable">
+                <div class="field"><div class="heading">
+                    <label>{{ 'Enabled on these sites'|t('easy-form') }}</label>
+                    <div class="instructions"><p>{{ "Turn a site off to drop this field from that site's form. It's excluded from rendering, validation and the stored submission."|t('easy-form') }}</p></div>
+                </div></div>
+                {% set primarySite = craft.app.sites.primarySite %}
+                {% set otherFieldSites = craft.app.sites.allSites|filter(s => s.id != primarySite.id) %}
+                {{ forms.lightswitchField({
+                    label: primarySite.name ~ ' (' ~ primarySite.handle ~ ')',
+                    name: fieldPrefix ~ '[siteEnabled][' ~ primarySite.handle ~ ']',
+                    on: (field.siteEnabled[primarySite.handle] ?? true) ? true : false,
+                    onValue: '1',
+                    offValue: '0'
+                }) }}
+                {% if otherFieldSites|length %}
+                    {% set siteWord = otherFieldSites|length == 1 ? 'site'|t('easy-form') : 'sites'|t('easy-form') %}
+                    <button type="button" class="ef-localized-toggle" aria-expanded="false"><span class="ef-localized-caret" aria-hidden="true"></span><span class="ef-localized-globe" aria-hidden="true"></span>{{ 'Other sites'|t('easy-form') }} <span class="ef-localized-count">{{ otherFieldSites|length }} {{ siteWord }}</span></button>
+                    <div class="ef-localized-others" hidden>
+                        {% for site in otherFieldSites %}
+                            {{ forms.lightswitchField({
+                                label: site.name ~ ' (' ~ site.handle ~ ')',
+                                name: fieldPrefix ~ '[siteEnabled][' ~ site.handle ~ ']',
+                                on: (field.siteEnabled[site.handle] ?? true) ? true : false,
+                                onValue: '1',
+                                offValue: '0'
+                            }) }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="field-dialog-footer">
+            <div class="field-dialog-error" role="alert" hidden></div>
+            <div class="field-dialog-actions">
+                <button type="button" class="btn field-dialog-cancel">{{ 'Cancel'|t('easy-form') }}</button>
+                <button type="button" class="btn submit field-dialog-save">{{ 'Save field'|t('easy-form') }}</button>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>

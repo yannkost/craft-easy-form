@@ -1,0 +1,45 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "Gallery — All Fields",
+    "handle": "galleryAllFields",
+    "description": "One of every field type, for rendering/validation coverage.",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Fields",
+          "rows": [
+            { "id": "r1", "stackOnMobile": true, "fields": [
+              { "id": "g1", "type": "text", "label": "Text", "handle": "textField", "required": true, "minLength": 2, "maxLength": 50 },
+              { "id": "g2", "type": "email", "label": "Email", "handle": "emailField", "required": true }
+            ] },
+            { "id": "r2", "stackOnMobile": true, "fields": [
+              { "id": "g3", "type": "number", "label": "Number", "handle": "numberField", "min": 1, "max": 100 },
+              { "id": "g4", "type": "tel", "label": "Phone", "handle": "phoneField" },
+              { "id": "g5", "type": "url", "label": "Website", "handle": "urlField" }
+            ] },
+            { "id": "r3", "stackOnMobile": true, "fields": [
+              { "id": "g6", "type": "date", "label": "Date", "handle": "dateField" },
+              { "id": "g7", "type": "textarea", "label": "Message", "handle": "messageField" }
+            ] },
+            { "id": "r4", "stackOnMobile": true, "fields": [
+              { "id": "g8", "type": "select", "label": "Pick one", "handle": "selectField", "options": "a:Option A\nb:Option B\nc:Option C" },
+              { "id": "g9", "type": "checkboxes", "label": "Pick many", "handle": "checkboxesField", "multiple": true, "options": "x:X\ny:Y\nz:Z" }
+            ] },
+            { "id": "r5", "stackOnMobile": true, "fields": [
+              { "id": "g10", "type": "agree", "label": "Agree", "handle": "agreeField", "required": true, "agreeText": "I agree to the terms" },
+              { "id": "g11", "type": "hidden", "label": "Source", "handle": "hiddenField", "defaultValue": "gallery" }
+            ] }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "emailField" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

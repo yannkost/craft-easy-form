@@ -1,0 +1,483 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms' as forms %}
+
+{% set title = 'Settings'|t('easy-form') %}
+{% set selectedSubnavItem = 'settings' %}
+{% set fullPageForm = true %}
+
+{% set efTabs = [
+    { id: 'general', label: 'General'|t('easy-form') },
+    { id: 'retention', label: 'Data Retention'|t('easy-form') },
+    { id: 'uploads', label: 'File Uploads'|t('easy-form') },
+    { id: 'captcha', label: 'CAPTCHA'|t('easy-form') },
+    { id: 'email', label: 'Email Validation'|t('easy-form') },
+    { id: 'privacy', label: 'Privacy'|t('easy-form') },
+    { id: 'maintenance', label: 'Maintenance'|t('easy-form') },
+] %}
+
+{% block content %}
+    <input type="hidden" name="action" value="easy-form/settings/save">
+    {{ redirectInput('easy-form/settings') }}
+
+<div class="ef-settings">
+    <nav class="ef-tabnav" role="tablist">
+        {% for tab in efTabs %}
+            <button type="button" class="ef-tabnav-item{% if loop.first %} is-active{% endif %}" role="tab" data-pane="ef-{{ tab.id }}">{{ tab.label }}</button>
+        {% endfor %}
+    </nav>
+
+    {# ── General ─────────────────────────────────────────────── #}
+    <div id="ef-general" class="ef-pane-card">
+        <h2 class="ef-card-title">{{ 'Global form settings'|t('easy-form') }}</h2>
+        <p class="ef-card-sub">{{ 'These settings apply to all forms by default.'|t('easy-form') }}</p>
+
+        {{ forms.lightswitchField({
+            label: 'Enable Spam Protection by Default'|t('easy-form'),
+            instructions: 'New forms will have honeypot enabled by default.'|t('easy-form'),
+            name: 'enableSpamProtectionByDefault',
+            on: settings.enableSpamProtectionByDefault ?? true
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Include Default Form Styles'|t('easy-form'),
+            instructions: 'Load the bundled stylesheet (form-render.css) on the front end. Turn off to style forms entirely with your own CSS.'|t('easy-form'),
+            name: 'includeDefaultStyles',
+            on: settings.includeDefaultStyles ?? true
+        }) }}
+
+        <div class="ef-code-hint">
+            <span>{{ 'Override per render — leave the global setting on and drop styles for a single form:'|t('easy-form') }}</span>
+            <pre><code>{% verbatim %}{{ easyForm('contact', { includeStyles: false }) }}{% endverbatim %}</code></pre>
+        </div>
+
+        {{ forms.textField({
+            label: 'Default Success Message'|t('easy-form'),
+            instructions: 'Default message shown after successful form submission.'|t('easy-form'),
+            name: 'defaultSuccessMessage',
+            value: settings.defaultSuccessMessage ?? 'Thank you for your submission!',
+            rows: 3
+        }) }}
+
+        {{ forms.textField({
+            label: 'Default Notification Email'|t('easy-form'),
+            instructions: 'Default email address for form notifications.'|t('easy-form'),
+            name: 'defaultNotificationEmail',
+            value: settings.defaultNotificationEmail ?? '',
+            type: 'email',
+            placeholder: 'admin@example.com'
+        }) }}
+    </div>
+
+    {# ── Data Retention ──────────────────────────────────────── #}
+    <div id="ef-retention" class="ef-pane-card hidden">
+        <h2 class="ef-card-title">{{ 'Data Retention'|t('easy-form') }}</h2>
+        <p class="ef-card-sub">{{ 'Automatically prune old submissions.'|t('easy-form') }}</p>
+
+        {{ forms.textField({
+            label: 'Keep Submissions For (Days)'|t('easy-form'),
+            instructions: 'Automatically delete submissions older than this many days. Leave empty to keep forever.'|t('easy-form'),
+            name: 'submissionRetentionDays',
+            value: settings.submissionRetentionDays ?? '',
+            type: 'number',
+            min: 1,
+            placeholder: '90'
+        }) }}
+
+        <div class="ef-callout">
+            <p>{{ 'When a retention period is set, old submissions are pruned automatically during Craft’s routine garbage collection.'|t('easy-form') }}</p>
+            <p>{{ 'For predictable timing, schedule the console command (e.g. nightly):'|t('easy-form') }}</p>
+            <div class="ef-code-hint"><pre><code>0 3 * * * php craft easy-form/submissions/prune</code></pre></div>
+            <p>{{ 'You can also prune on demand from the Maintenance tab.'|t('easy-form') }}</p>
+        </div>
+    </div>
+
+    {# ── File Uploads ────────────────────────────────────────── #}
+    <div id="ef-uploads" class="ef-pane-card hidden">
+        <h2 class="ef-card-title">{{ 'File Uploads'|t('easy-form') }}</h2>
+        <p class="ef-card-sub">{{ 'Where uploaded files are stored, and their size limit.'|t('easy-form') }}</p>
+
+        {{ forms.selectField({
+            label: 'Upload Mode'|t('easy-form'),
+            instructions: 'Asset: store uploads as Craft assets (managed in a volume). Filesystem: write files to a folder and store their path/URL (no asset elements — better for very high volumes).'|t('easy-form'),
+            name: 'uploadMode',
+            value: settings.uploadMode ?? 'asset',
+            options: [
+                { label: 'Craft Asset'|t('easy-form'), value: 'asset' },
+                { label: 'Filesystem'|t('easy-form'), value: 'filesystem' },
+            ]
+        }) }}
+
+        <div class="ef-upload-filesystem" style="{{ (settings.uploadMode ?? 'asset') == 'filesystem' ? '' : 'display:none;' }}">
+            {{ forms.textField({
+                label: 'Filesystem Path'|t('easy-form'),
+                instructions: 'Directory where uploads are written. Supports aliases, e.g. @webroot/form-uploads.'|t('easy-form'),
+                name: 'uploadFilesystemPath',
+                value: settings.uploadFilesystemPath ?? '@webroot/form-uploads',
+                class: 'code'
+            }) }}
+
+            {{ forms.textField({
+                label: 'Base URL'|t('easy-form'),
+                instructions: 'Public URL base that maps to the filesystem path. Supports aliases, e.g. @web/form-uploads.'|t('easy-form'),
+                name: 'uploadBaseUrl',
+                value: settings.uploadBaseUrl ?? '@web/form-uploads',
+                class: 'code'
+            }) }}
+
+            {{ forms.lightswitchField({
+                label: 'Organise into dated subfolders'|t('easy-form'),
+                instructions: 'Store uploads in Y/m subfolders (e.g. 2026/06/) within the path above. Turn off to save files directly into the path.'|t('easy-form'),
+                name: 'uploadDateSubfolders',
+                on: settings.uploadDateSubfolders ?? true
+            }) }}
+
+            <blockquote class="note warning">
+                <p>{{ 'If the path is inside your web root, uploaded files may be directly reachable by anyone who knows or guesses the URL. Decide whether site visitors should be able to access these files — if not, block direct access (e.g. with an .htaccess rule or server config) or store uploads outside the web root.'|t('easy-form') }}</p>
+            </blockquote>
+        </div>
+
+        <div class="ef-upload-asset" style="{{ (settings.uploadMode ?? 'asset') == 'filesystem' ? 'display:none;' : '' }}">
+            {% set volumeOptions = [] %}
+            {% for volume in craft.app.volumes.allVolumes %}
+                {% set volumeOptions = volumeOptions|merge([{ label: volume.name, value: volume.uid }]) %}
+            {% endfor %}
+
+            {{ forms.selectField({
+                label: 'Upload Volume'|t('easy-form'),
+                instructions: 'Select the volume where uploaded files will be stored.'|t('easy-form'),
+                name: 'uploadVolumeUid',
+                value: settings.uploadVolumeUid ?? '',
+                options: volumeOptions,
+                required: false
+            }) }}
+
+            {{ forms.textField({
+                label: 'Upload Subfolder'|t('easy-form'),
+                instructions: 'Optional subfolder path within the volume (e.g., "form-uploads"). Leave empty to upload to volume root.'|t('easy-form'),
+                name: 'uploadSubfolder',
+                value: settings.uploadSubfolder ?? '',
+                placeholder: 'form-uploads'
+            }) }}
+        </div>{# /.ef-upload-asset #}
+
+        {{ forms.textField({
+            label: 'Max File Size (MB)'|t('easy-form'),
+            instructions: 'Maximum file size for uploads in megabytes.'|t('easy-form'),
+            name: 'maxFileSize',
+            value: settings.maxFileSize ?? 10,
+            type: 'number',
+            min: 1,
+            max: 100
+        }) }}
+
+        {{ forms.textField({
+            label: 'Max Total Upload Size (MB)'|t('easy-form'),
+            instructions: 'Default combined size of all files in a single file field. Leave at 0 for no combined limit. Per-field settings override this.'|t('easy-form'),
+            name: 'maxTotalUploadSize',
+            value: settings.maxTotalUploadSize ?? 0,
+            type: 'number',
+            min: 0,
+            max: 1000
+        }) }}
+
+        {{ forms.textField({
+            label: 'Max Attachment Size (MB)'|t('easy-form'),
+            instructions: 'Uploaded files larger than this are not attached to notification emails (the submission still keeps the file).'|t('easy-form'),
+            name: 'maxAttachmentSize',
+            value: settings.maxAttachmentSize ?? 10,
+            type: 'number',
+            min: 1,
+            max: 100
+        }) }}
+    </div>
+
+    {# ── CAPTCHA ─────────────────────────────────────────────── #}
+    <div id="ef-captcha" class="ef-pane-card hidden">
+        <h2 class="ef-card-title">{{ 'CAPTCHA'|t('easy-form') }}</h2>
+        <p class="ef-card-sub">{{ 'Configure credentials for any providers you want to offer. Each form can then choose one (or none). Secrets may reference an environment variable, e.g. $TURNSTILE_SECRET.'|t('easy-form') }}</p>
+
+        <h3>{{ 'Cloudflare Turnstile'|t('easy-form') }}</h3>
+        {{ forms.textField({ label: 'Site Key'|t('easy-form'), name: 'turnstileSiteKey', value: settings.turnstileSiteKey ?? '', class: 'code' }) }}
+        {{ forms.autosuggestField({ label: 'Secret Key'|t('easy-form'), name: 'turnstileSecret', value: settings.turnstileSecret ?? '', suggestEnvVars: true, class: 'code' }) }}
+
+        <hr>
+
+        <h3>{{ 'reCAPTCHA v3'|t('easy-form') }}</h3>
+        {{ forms.textField({ label: 'Site Key'|t('easy-form'), name: 'recaptchaV3SiteKey', value: settings.recaptchaV3SiteKey ?? '', class: 'code' }) }}
+        {{ forms.autosuggestField({ label: 'Secret Key'|t('easy-form'), name: 'recaptchaV3Secret', value: settings.recaptchaV3Secret ?? '', suggestEnvVars: true, class: 'code' }) }}
+        {{ forms.textField({
+            label: 'Score Threshold'|t('easy-form'),
+            instructions: 'Minimum score (0–1) required to accept a submission. Default 0.5.'|t('easy-form'),
+            name: 'recaptchaV3ScoreThreshold', type: 'number', step: '0.1', min: 0, max: 1,
+            value: settings.recaptchaV3ScoreThreshold ?? 0.5, size: 5
+        }) }}
+
+        <hr>
+
+        <h3>{{ 'reCAPTCHA v2'|t('easy-form') }}</h3>
+        {{ forms.textField({ label: 'Site Key'|t('easy-form'), name: 'recaptchaV2SiteKey', value: settings.recaptchaV2SiteKey ?? '', class: 'code' }) }}
+        {{ forms.autosuggestField({ label: 'Secret Key'|t('easy-form'), name: 'recaptchaV2Secret', value: settings.recaptchaV2Secret ?? '', suggestEnvVars: true, class: 'code' }) }}
+    </div>
+
+    {# ── Email Validation ────────────────────────────────────── #}
+    <div id="ef-email" class="ef-pane-card hidden">
+        <h2 class="ef-card-title">{{ 'Email Validation'|t('easy-form') }}</h2>
+        <p class="ef-card-sub">{{ 'Block submissions from disposable / unwanted email domains or containing spam keywords.'|t('easy-form') }}</p>
+
+        <div class="ef-callout">
+            <p>{{ 'These rules run on the server for every submission — including direct POSTs that bypass your form — so matching submissions are never delivered.'|t('easy-form') }}</p>
+            <p>{{ 'By default they are filed silently as spam: the sender gets a normal success response and cannot tell which value was blocked. Turn the switch below off to refuse them up front with the per-site message instead.'|t('easy-form') }}</p>
+        </div>
+
+        {{ forms.textareaField({
+            label: 'Blocked Email Domains'|t('easy-form'),
+            instructions: 'Enter one domain per line. Email addresses from these domains are blocked. Example: tempmail.com'|t('easy-form'),
+            name: 'blockedEmailDomains',
+            value: settings.blockedEmailDomains ?? '',
+            rows: 10,
+            placeholder: 'tempmail.com\ndisposablemail.com\ntrashmail.com'
+        }) }}
+
+        {{ forms.textareaField({
+            label: 'Blocked Keywords'|t('easy-form'),
+            instructions: 'Enter one keyword or phrase per line. Submissions whose field values contain any of these (case-insensitive) are blocked.'|t('easy-form'),
+            name: 'blockedKeywords',
+            value: settings.blockedKeywords ?? '',
+            rows: 6,
+            placeholder: 'casino\nviagra\nbuy followers'
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Silently send blocked submissions to spam'|t('easy-form'),
+            instructions: 'On (recommended): blocked submissions are quietly saved as spam with no feedback to the sender. Off: the sender sees the rejection message below.'|t('easy-form'),
+            name: 'silentlyRejectBlocked',
+            on: settings.silentlyRejectBlocked ?? true
+        }) }}
+
+        <div class="ef-subfield">
+            <span class="ef-subfield-label">{{ 'Rejection message'|t('easy-form') }}</span>
+            <p class="ef-card-sub">{{ 'Shown to the visitor only when the switch above is off. Translate it per site, and keep it generic so it never reveals which rule matched.'|t('easy-form') }}</p>
+            {% for site in craft.app.sites.getAllSites() %}
+                {{ forms.textField({
+                    label: site.name,
+                    name: 'blockedSubmissionMessages[' ~ site.handle ~ ']',
+                    value: settings.blockedSubmissionMessages[site.handle] ?? '',
+                    placeholder: 'Your submission could not be accepted.'|t('easy-form')
+                }) }}
+            {% endfor %}
+        </div>
+    </div>
+
+    {# ── Privacy ─────────────────────────────────────────────── #}
+    <div id="ef-privacy" class="ef-pane-card hidden">
+        <h2 class="ef-card-title">{{ 'Privacy'|t('easy-form') }}</h2>
+        <p class="ef-card-sub">{{ 'Control what submitter metadata is stored.'|t('easy-form') }}</p>
+
+        {{ forms.lightswitchField({
+            label: 'Store IP Addresses'|t('easy-form'),
+            instructions: 'Store the IP address (and user agent) of form submitters.'|t('easy-form'),
+            id: 'storeIpAddresses',
+            name: 'storeIpAddresses',
+            on: settings.storeIpAddresses ?? true
+        }) }}
+
+        <div class="ef-ip-mode" style="{{ (settings.storeIpAddresses ?? true) ? '' : 'display:none;' }}">
+            {{ forms.selectField({
+                label: 'IP Storage Mode'|t('easy-form'),
+                instructions: 'How to store IP addresses. Anonymized zeroes the host portion; Hashed stores a non-reversible salted hash.'|t('easy-form'),
+                name: 'ipStorageMode',
+                value: settings.ipStorageMode ?? 'full',
+                options: [
+                    { label: 'Full'|t('easy-form'), value: 'full' },
+                    { label: 'Anonymized'|t('easy-form'), value: 'anonymized' },
+                    { label: 'Hashed'|t('easy-form'), value: 'hashed' },
+                ]
+            }) }}
+        </div>
+
+        <p class="light">{{ 'Use {link} to export or erase all data for a specific email address.'|t('easy-form', { link: '<a href="' ~ url('easy-form/privacy') ~ '">' ~ 'Privacy → data subject requests'|t('easy-form') ~ '</a>' })|raw }}</p>
+
+        <hr>
+
+        <h2 class="ef-card-title">{{ 'Uninstall'|t('easy-form') }}</h2>
+        <p class="ef-card-sub">{{ 'Uninstalling Easy Form permanently drops all forms and submissions.'|t('easy-form') }}</p>
+
+        {{ forms.lightswitchField({
+            label: 'Delete uploaded files on uninstall'|t('easy-form'),
+            instructions: 'Also delete every uploaded file (and asset-mode Assets) when the plugin is uninstalled. Off by default — uninstalling never removes uploads unless this is on.'|t('easy-form'),
+            id: 'deleteUploadedFilesOnUninstall',
+            name: 'deleteUploadedFilesOnUninstall',
+            on: settings.deleteUploadedFilesOnUninstall ?? false
+        }) }}
+    </div>
+
+    {# ── Maintenance ─────────────────────────────────────────── #}
+    <div id="ef-maintenance" class="ef-pane-card hidden">
+        <h2 class="ef-card-title">{{ 'Maintenance'|t('easy-form') }}</h2>
+        <p class="ef-card-sub">{{ 'On-demand background jobs for housekeeping.'|t('easy-form') }}</p>
+
+        <div class="ef-subfield">
+            <span class="ef-subfield-label">{{ 'Prune old submissions now'|t('easy-form') }}</span>
+            <p class="ef-card-sub">{{ 'Queues a background job that deletes submissions older than the retention period set under Data Retention.'|t('easy-form') }}</p>
+            <button type="button" class="btn" id="ef-prune-now">{{ 'Prune now'|t('easy-form') }}</button>
+        </div>
+
+        <div class="ef-subfield">
+            <span class="ef-subfield-label">{{ 'Re-index promoted columns'|t('easy-form') }}</span>
+            <p class="ef-card-sub">{{ 'Recompute the Email / Search columns for a form’s existing submissions. Run this after promoting a field — promotion otherwise only affects new submissions.'|t('easy-form') }}</p>
+            {% if forms ?? [] %}
+                <div class="ef-action-row">
+                    <div class="select">
+                        <select id="ef-reindex-form">
+                            {% for form in forms %}
+                                <option value="{{ form.id }}">{{ form.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="button" class="btn" id="ef-reindex-go">{{ 'Re-index'|t('easy-form') }}</button>
+                </div>
+            {% else %}
+                <p class="ef-card-sub">{{ 'No forms yet.'|t('easy-form') }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% js %}
+(function () {
+    // ── Tab switching (own tab bar) ──────────────────────────────
+    var tabs = document.querySelectorAll('.ef-settings .ef-tabnav-item');
+    var paneIds = ['ef-general', 'ef-retention', 'ef-uploads', 'ef-captcha', 'ef-email', 'ef-privacy', 'ef-maintenance'];
+    function activate(tab) {
+        tabs.forEach(function (t) { t.classList.remove('is-active'); });
+        tab.classList.add('is-active');
+        var active = tab.dataset.pane;
+        paneIds.forEach(function (id) {
+            var pane = document.getElementById(id);
+            if (pane) pane.classList.toggle('hidden', id !== active);
+        });
+    }
+    tabs.forEach(function (tab) { tab.addEventListener('click', function () { activate(tab); }); });
+
+    // After a failed save, flag + jump to the first tab with errors.
+    var firstErrored = null;
+    paneIds.forEach(function (id) {
+        var pane = document.getElementById(id);
+        if (pane && pane.querySelector('ul.errors li')) {
+            var t = document.querySelector('.ef-tabnav-item[data-pane="' + id + '"]');
+            if (t) { t.classList.add('has-error'); if (!firstErrored) firstErrored = t; }
+        }
+    });
+    if (firstErrored && !firstErrored.classList.contains('is-active')) activate(firstErrored);
+
+    // ── Upload-mode conditional fields ───────────────────────────
+    var sel = document.querySelector('select[name="uploadMode"]');
+    if (sel) {
+        var syncUpload = function () {
+            var fs = sel.value === 'filesystem';
+            document.querySelectorAll('.ef-upload-filesystem').forEach(function (el) { el.style.display = fs ? '' : 'none'; });
+            document.querySelectorAll('.ef-upload-asset').forEach(function (el) { el.style.display = fs ? 'none' : ''; });
+        };
+        sel.addEventListener('change', syncUpload);
+        syncUpload();
+    }
+
+    // ── Store-IP conditional field ───────────────────────────────
+    var ipSwitch = document.querySelector('[name="storeIpAddresses"]');
+    if (ipSwitch) {
+        var syncIp = function () {
+            var on = ipSwitch.value === '1' || ipSwitch.checked;
+            document.querySelectorAll('.ef-ip-mode').forEach(function (el) { el.style.display = on ? '' : 'none'; });
+        };
+        ipSwitch.addEventListener('change', syncIp);
+        var ls = ipSwitch.closest('.lightswitch');
+        if (ls) ls.addEventListener('click', function () { setTimeout(syncIp, 50); });
+        syncIp();
+    }
+
+    // Maintenance: on-demand prune + re-index. Buttons are type="button" so they
+    // never submit the settings form; they queue background jobs via AJAX.
+    function bindAction(btnId, action, getData, failMsg) {
+        var btn = document.getElementById(btnId);
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            var data = getData();
+            if (data === false) return;
+            btn.disabled = true;
+            Craft.sendActionRequest('POST', action, data ? { data: data } : {})
+                .then(function (resp) {
+                    btn.disabled = false;
+                    if (resp.data && resp.data.success) {
+                        Craft.cp.displayNotice(resp.data.message);
+                    } else {
+                        Craft.cp.displayError((resp.data && resp.data.error) || Craft.t('easy-form', failMsg));
+                    }
+                })
+                .catch(function () {
+                    btn.disabled = false;
+                    Craft.cp.displayError(Craft.t('easy-form', failMsg));
+                });
+        });
+    }
+
+    bindAction('ef-prune-now', 'easy-form/settings/prune-now', function () { return null; }, 'Could not start pruning.');
+    bindAction('ef-reindex-go', 'easy-form/settings/reindex', function () {
+        var sel = document.getElementById('ef-reindex-form');
+        return (sel && sel.value) ? { formId: sel.value } : false;
+    }, 'Could not start re-indexing.');
+})();
+{% endjs %}
+
+{% css %}
+/* Full-bleed canvas (scoped to this page). */
+#content.content-pane:has(.ef-settings) { background: transparent; box-shadow: none; padding: 0; border: 0; border-radius: 0; }
+
+/* ── Tab bar (text tabs with active underline) ──────────────── */
+.ef-settings .ef-tabnav { display: flex; gap: 0; margin: 0 0 24px; border-bottom: 1px solid var(--hairline-color, #e3e8ef); overflow-x: auto; }
+.ef-settings .ef-tabnav-item {
+    position: relative; margin: 0; padding: 11px 13px; white-space: nowrap;
+    background: transparent; border: 0; border-radius: 0; box-shadow: none;
+    color: var(--medium-text-color, #5a6573); font-weight: 500; font-size: 14px; cursor: pointer;
+}
+.ef-settings .ef-tabnav-item:hover { color: var(--text-color, #1d2530); }
+.ef-settings .ef-tabnav-item.is-active { color: #2160e6; box-shadow: inset 0 -2px 0 #2160e6; }
+.ef-settings .ef-tabnav-item.has-error { color: #b32328; }
+.ef-settings .ef-tabnav-item.has-error::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #b32328; margin-left: 7px; vertical-align: middle; }
+.ef-settings .ef-tabnav-item.has-error.is-active { color: #b32328; box-shadow: inset 0 -2px 0 #b32328; }
+
+/* ── Pane cards ─────────────────────────────────────────────── */
+.ef-settings .ef-pane-card {
+    background: var(--white, #fff);
+    border: 1px solid var(--hairline-color, #e3e8ef);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 6px 16px rgba(16,24,40,.05);
+    padding: 22px 24px;
+    max-width: none;
+}
+.ef-settings .ef-card-title { margin: 0 0 4px; font-size: 16px; font-weight: 600; color: var(--text-color, #1d2530); }
+.ef-settings .ef-card-sub { margin: 0 0 18px; color: var(--light-text-color, #8893a2); font-size: 13px; }
+.ef-settings .ef-pane-card > h3 { font-size: 14px; font-weight: 600; color: var(--text-color, #1d2530); margin: 4px 0 2px; }
+.ef-settings .ef-pane-card hr { border: 0; border-top: 1px solid var(--hairline-color, #e3e8ef); margin: 24px 0; }
+.ef-settings .ef-pane-card .text { border-radius: 10px; }
+.ef-settings .ef-callout {
+    display: flex; flex-direction: column; gap: 6px;
+    background: var(--gray-050, #f4f6f9);
+    border: 1px solid var(--hairline-color, #e3e8ef);
+    border-left: 3px solid #2160e6;
+    border-radius: 10px;
+    padding: 12px 14px; margin: 0 0 18px;
+    font-size: 13px; line-height: 1.45; color: var(--text-color, #1d2530);
+}
+.ef-settings .ef-callout p { margin: 0; }
+.ef-settings .ef-callout code { background: var(--hairline-color, #e3e8ef); border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+.ef-settings .ef-code-hint { margin: 8px 0 4px; }
+.ef-settings .ef-code-hint > span { display: block; font-size: 13px; color: var(--light-text-color, #8893a2); margin-bottom: 6px; }
+.ef-settings .ef-code-hint pre { margin: 0; background: #1d2530; color: #e7edf5; border-radius: 10px; padding: 12px 14px; font-size: 12.5px; overflow-x: auto; }
+.ef-settings .ef-code-hint code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.ef-settings .ef-subfield { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--hairline-color, #e3e8ef); }
+.ef-settings .ef-subfield-label { display: block; font-size: 14px; font-weight: 600; color: var(--text-color, #1d2530); margin: 0 0 2px; }
+.ef-settings .ef-subfield .btn { margin-top: 6px; }
+.ef-settings .ef-action-row { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
+.ef-settings .ef-action-row .btn { margin-top: 0; }
+{% endcss %}
+{% endblock %}

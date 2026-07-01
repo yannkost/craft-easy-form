@@ -1,0 +1,40 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Values",
+    "handle": "e2eValues",
+    "description": "select / checkboxes / date fields, used to verify stored-value shapes.",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Form",
+          "rows": [
+            {
+              "id": "r1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "email", "label": "Email", "handle": "email", "required": true },
+                { "id": "f2", "type": "select", "label": "Plan", "handle": "plan", "options": "basic:Basic\npro:Pro" }
+              ]
+            },
+            {
+              "id": "r2",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f3", "type": "checkboxes", "label": "Toppings", "handle": "toppings", "multiple": true, "options": "a:A\nb:B\nc:C" },
+                { "id": "f4", "type": "date", "label": "When", "handle": "when" }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

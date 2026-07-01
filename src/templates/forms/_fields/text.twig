@@ -1,0 +1,52 @@
+{# Handles: text, number, url #}
+{% set pattern = '' %}
+{% set title = '' %}
+{% set urlRequireScheme = false %}
+
+{# URL validation pattern. With "require scheme" on, the http(s):// prefix is
+   mandatory; otherwise it stays optional so "example.com" is accepted. #}
+{% if field.type == 'url' %}
+    {% set urlRequireScheme = field.requireScheme|default(false) %}
+    {% if urlRequireScheme %}
+        {% set pattern = '^https?:\\/\\/(www\\.)?[a-zA-Z0-9\\-]+(\\.[a-zA-Z]{2,})+(\\/[^\\s]*)?$' %}
+        {% set title = 'Please enter a URL starting with http:// or https://' %}
+    {% else %}
+        {% set pattern = '^(https?:\\/\\/)?(www\\.)?[a-zA-Z0-9\\-]+(\\.[a-zA-Z]{2,})+(\\/[^\\s]*)?$' %}
+        {% set title = 'Please enter a valid URL' %}
+    {% endif %}
+{% endif %}
+
+<input
+    type="{{ field.type }}"
+    id="{{ field.fieldId|default('') ?: formId ~ '-' ~ field.handle }}"
+    name="fields[{{ field.handle }}]"
+    {% if field.placeholder|default('') %}placeholder="{{ field.placeholder }}"{% elseif field.type == 'url' and urlRequireScheme %}placeholder="https://example.com"{% endif %}
+    {# A render-time value override — easyForm('x', { values: { handle: '…' } }) —
+       wins over the builder default and its per-site variants. #}
+    {% set fieldDefault = options.values[field.handle] ?? field.siteDefaultValues[currentSite.handle]|default(field.defaultValue|default('')) %}
+    {% if fieldDefault is not same as('') %}value="{{ fieldDefault }}"{% endif %}
+    {% if field.required|default(false) %}required{% endif %}
+    {% if field.type == 'url' %}data-require-scheme="{{ urlRequireScheme ? 'true' : 'false' }}"{% endif %}
+    {% if pattern %}pattern="{{ pattern }}" title="{{ title }}"{% endif %}
+    {% if field.minLength|default(0) > 0 %}minlength="{{ field.minLength }}"{% endif %}
+    {% if field.maxLength|default(0) > 0 %}maxlength="{{ field.maxLength }}"{% endif %}
+    {% if field.siteMinLengthMessages[currentSite.handle] ?? null %}data-minlength-message="{{ field.siteMinLengthMessages[currentSite.handle] }}"{% endif %}
+    {% if field.siteMaxLengthMessages[currentSite.handle] ?? null %}data-maxlength-message="{{ field.siteMaxLengthMessages[currentSite.handle] }}"{% endif %}
+    {% if field.type == 'number' %}
+        {% if field.min|default('') %}min="{{ field.min }}"{% endif %}
+        {% if field.max|default('') %}max="{{ field.max }}"{% endif %}
+        {% set decimals = field.decimals|default('') %}
+        {% if decimals != '' %}
+            {% if decimals == 0 or decimals == '0' %}step="1" inputmode="numeric"{% else %}step="any" inputmode="decimal"{% endif %}
+            data-decimals="{{ decimals }}"
+        {% endif %}
+        {% if field.siteMinMessages[currentSite.handle] ?? null %}data-min-message="{{ field.siteMinMessages[currentSite.handle] }}"{% endif %}
+        {% if field.siteMaxMessages[currentSite.handle] ?? null %}data-max-message="{{ field.siteMaxMessages[currentSite.handle] }}"{% endif %}
+    {% endif %}
+    {% if field.siteRequiredMessages[currentSite.handle] ?? null %}data-required-message="{{ field.siteRequiredMessages[currentSite.handle] }}"{% endif %}
+    {% if fieldHelp|default('') %}aria-describedby="{{ fieldInputId }}-help"{% endif %}
+    data-field-type="{{ field.type }}"
+>
+{% if field.type == 'url' and urlRequireScheme %}
+    <small class="easy-form-field-hint">Must start with http:// or https://</small>
+{% endif %}

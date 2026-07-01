@@ -1,0 +1,43 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Notify Site Toggle",
+    "handle": "e2eNotifySiteToggle",
+    "description": "Per-site enable toggle: on for default, off for french (e2e).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null,
+    "notificationSettings": [
+      {
+        "enabled": true,
+        "name": "Default only",
+        "recipients": ["notify-toggle@example.test"],
+        "subject": "Site toggle notify",
+        "senderEmail": "no-reply@example.test",
+        "senderName": "Easy Form",
+        "siteEnabled": { "default": true, "french": false }
+      }
+    ]
+  }
+}

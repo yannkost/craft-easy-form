@@ -1,0 +1,32 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E File Upload",
+    "handle": "e2eFileUpload",
+    "description": "A file field with a size cap and an allow-list of types, used to verify upload validation.",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Upload",
+          "rows": [
+            {
+              "id": "r1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "f2", "type": "file", "label": "Document", "handle": "document", "maxFileSize": 1, "allowedFileTypes": "txt" }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

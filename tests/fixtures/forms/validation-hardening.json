@@ -1,0 +1,47 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Validation Hardening",
+    "handle": "e2eValHard",
+    "description": "Server-side validation hardening: number min/max, option membership, strict dates (e2e).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "n1", "type": "number", "label": "Quantity (no max)", "handle": "qtyNoMax", "min": "", "max": "" },
+                { "id": "n2", "type": "number", "label": "Capped", "handle": "capped", "min": 1, "max": 10 }
+              ]
+            },
+            {
+              "id": "row_2",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "s1", "type": "select", "label": "Choice", "handle": "choice", "options": "a:A\nb:B\nc:C" },
+                { "id": "c1", "type": "checkboxes", "label": "Boxes", "handle": "boxes", "multiple": true, "options": "x:X\ny:Y\nz:Z" }
+              ]
+            },
+            {
+              "id": "row_3",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "d1", "type": "date", "label": "When", "handle": "when" }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": {}
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

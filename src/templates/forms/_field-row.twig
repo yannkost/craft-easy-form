@@ -1,0 +1,51 @@
+{% import '_includes/forms' as forms %}
+
+<div class="field-row" data-index="{{ index }}">
+    <div class="field-row-header">
+        <div class="field-row-handle">
+            <span class="move icon" title="{{ 'Reorder'|t('app') }}"></span>
+        </div>
+        <div class="field-row-label">
+            <strong class="field-label-text">{{ field.label ?: 'New Field'|t('easy-form') }}</strong>
+            <span class="field-type-badge">{{ field.type|upper }}</span>
+        </div>
+        <div class="field-row-actions">
+            <button type="button" class="btn small toggle-field-settings">{{ 'Settings'|t('app') }}</button>
+            <button type="button" class="btn small delete-field">{{ 'Delete'|t('app') }}</button>
+        </div>
+    </div>
+    
+    <div class="field-row-settings" style="display: none;">
+        <input type="hidden" name="fields[{{ index }}][id]" value="{{ field.id ?? 'field_' ~ (index + 1) }}">
+        <input type="hidden" name="fields[{{ index }}][type]" value="{{ field.type ?? 'text' }}">
+
+        {{ forms.textField({
+            label: 'Label'|t('easy-form'),
+            name: 'fields[' ~ index ~ '][label]',
+            value: field.label ?? '',
+            required: true,
+            class: 'field-label-input'
+        }) }}
+
+        {{ forms.textField({
+            label: 'Handle'|t('easy-form'),
+            instructions: 'How you\'ll access this field value in templates.'|t('easy-form'),
+            name: 'fields[' ~ index ~ '][handle]',
+            value: field.handle ?? '',
+            class: 'code field-handle-input',
+            required: true
+        }) }}
+
+        {{ forms.textField({
+            label: 'Placeholder'|t('easy-form'),
+            name: 'fields[' ~ index ~ '][placeholder]',
+            value: field.placeholder ?? ''
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Required'|t('easy-form'),
+            name: 'fields[' ~ index ~ '][required]',
+            on: field.required ?? false
+        }) }}
+    </div>
+</div>

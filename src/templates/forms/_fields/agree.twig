@@ -1,0 +1,98 @@
+{#
+    Agree / Legal field template
+
+    Variables:
+    - field: The field configuration
+    - formId: The form ID
+#}
+
+{% set primaryHandle = craft.app.sites.getPrimarySite().handle %}
+
+{# Per-site link list: this site's links, else the primary site's — so a
+   translated copy that defines no links of its own still shows the primary's. #}
+{% set allLinks = field.links ?? {} %}
+{% set siteLinks = allLinks[currentSite.handle] ?? [] %}
+{% if siteLinks is empty %}
+    {% set siteLinks = allLinks[primaryHandle] ?? [] %}
+{% endif %}
+
+{# Priority: per-site Display Text > Display Text > per-site Label > Label.
+   Each link's phrase must appear within this text for its anchor to be spliced
+   in, so the displayed text and its phrases resolve from the same per-site
+   source — otherwise links go missing in translated copies. #}
+{% set siteAgreeText = field.siteAgreeText ?? [] %}
+{% set siteLabels = field.siteLabels ?? [] %}
+{% set defaultLabel = fieldLabel ?? field.label %}
+{% set labelText = ((siteAgreeText[currentSite.handle] ?? '')|trim)
+    ?: ((field.agreeText ?? '')|trim)
+    ?: ((siteLabels[currentSite.handle] ?? '')|trim)
+    ?: defaultLabel %}
+
+{# Build the displayed label safely: escape the admin-configured text, then
+   splice in a sanitized anchor for each link whose phrase appears in it. The
+   target is the linked Entry's URL (preferred) or the custom URL; only http(s)
+   and root-relative URLs are allowed (blocks javascript:/data: schemes).
+   Entry URLs resolve on the current site first, then any site preferring the
+   primary — so an entry that only exists on the primary still links here. #}
+{% set safeLabel = labelText|e %}
+{% for link in siteLinks %}
+    {% set phrase = (link.text ?? '')|trim %}
+    {% set url = (link.url ?? '')|trim %}
+    {% if link.entryId ?? null %}
+        {% set entry = craft.entries.id(link.entryId).one()
+            ?? craft.entries.id(link.entryId).siteId('*').preferSites([primaryHandle]).unique().one() %}
+        {% if entry and entry.url %}
+            {% set url = entry.url %}
+        {% endif %}
+    {% endif %}
+    {% set safeUrl = url matches '/^(https?:\\/\\/|\\/)/' ? url : '' %}
+    {% if phrase and safeUrl and phrase in labelText %}
+        {% set safePhrase = phrase|e %}
+        {% set linkHtml = '<a href="' ~ safeUrl|e('html_attr') ~ '" target="_blank" rel="noopener noreferrer">' ~ safePhrase ~ '</a>' %}
+        {% set safeLabel = safeLabel|replace({ (safePhrase): linkHtml }) %}
+    {% endif %}
+{% endfor %}
+
+{# One id only: a custom fieldId overrides the default. #}
+{% set agreeId = field.fieldId|default('') ?: (formId ~ '-' ~ field.handle) %}
+
+{# Per-site checkbox values + default state. A blank per-site entry falls back to
+   the primary site, then to Yes/No. The submitted/stored value is the resolved
+   text for the current site (checked → checkedValue, unchecked → uncheckedValue),
+   carried by a hidden input so an unchecked box still records its meaning. #}
+{% set checkedValue = ((field.siteAgreeChecked[currentSite.handle] ?? '')|trim) ?: ((field.siteAgreeChecked[primaryHandle] ?? '')|trim) ?: 'Yes' %}
+{% set uncheckedValue = ((field.siteAgreeUnchecked[currentSite.handle] ?? '')|trim) ?: ((field.siteAgreeUnchecked[primaryHandle] ?? '')|trim) ?: 'No' %}
+{% set agreeChecked = (field.siteAgreeDefault[currentSite.handle] ?? '0') == '1' %}
+
+{# A render-time value override — easyForm('x', { values: { handle: true } }) —
+   sets the checkbox state. true / 1 / '1' / the checked value checks it; any
+   other value leaves it unchecked. #}
+{% set efAgree = options.values[field.handle] ?? null %}
+{% if efAgree is not null %}
+    {% set agreeChecked = efAgree is same as(true) or efAgree == 1 or efAgree == '1' or efAgree == checkedValue %}
+{% endif %}
+
+<div class="input-checkbox-group">
+    <label class="checkbox-label">
+        <input type="hidden" name="fields[{{ field.handle }}]" value="{{ uncheckedValue }}">
+        <input
+            type="checkbox"
+            id="{{ agreeId }}"
+            name="fields[{{ field.handle }}]"
+            value="{{ checkedValue }}"
+            data-field-type="agree"
+            data-checked-value="{{ checkedValue }}"
+            {% if agreeChecked %}checked{% endif %}
+            {% if field.required|default(false) %}required{% endif %}
+            {% if field.siteRequiredMessages[currentSite.handle] ?? null %}data-required-message="{{ field.siteRequiredMessages[currentSite.handle] }}"{% endif %}
+            {% if fieldHelp|default('') %}aria-describedby="{{ agreeId }}-help"{% endif %}
+            {% if field.classList|default('') %}class="{{ field.classList }}"{% endif %}
+        >
+        <span class="checkbox-text">
+            {{ safeLabel|raw }}
+            {% if field.required|default(false) %}
+                <span class="required">*</span>
+            {% endif %}
+        </span>
+    </label>
+</div>

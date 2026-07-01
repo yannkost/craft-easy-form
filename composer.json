@@ -1,0 +1,54 @@
+{
+  "name": "yannkost/craft-easy-form",
+  "description": "Make simple forms and display/export submissions",
+  "type": "craft-plugin",
+  "license": "proprietary",
+  "keywords": [
+    "craft",
+    "craftcms",
+    "craft-plugin",
+    "forms",
+    "form-builder",
+    "submissions"
+  ],
+  "support": {
+    "email": "yann.kost@ik.me",
+    "issues": "https://github.com/yannkost/craft-easy-form/issues",
+    "source": "https://github.com/yannkost/craft-easy-form",
+    "docs": "https://github.com/yannkost/craft-easy-form"
+  },
+  "authors": [
+    {
+      "name": "Yann Kost",
+      "homepage": "https://github.com/yannkost"
+    }
+  ],
+  "require": {
+    "php": ">=8.2",
+    "craftcms/cms": "^5.8.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "yannkost\\easyform\\": "src/"
+    }
+  },
+  "extra": {
+    "handle": "easy-form",
+    "name": "Easy Form",
+    "developer": "Yann Kost",
+    "developerUrl": "https://github.com/yannkost",
+    "documentationUrl": "https://github.com/yannkost/craft-easy-form",
+    "changelogUrl": "https://raw.githubusercontent.com/yannkost/craft-easy-form/main/CHANGELOG.md",
+    "class": "yannkost\\easyform\\EasyForm"
+  },
+  "config": {
+    "sort-packages": true,
+    "platform": {
+      "php": "8.2"
+    },
+    "allow-plugins": {
+      "yiisoft/yii2-composer": true,
+      "craftcms/plugin-installer": true
+    }
+  }
+}

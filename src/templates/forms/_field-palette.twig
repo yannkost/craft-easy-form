@@ -1,0 +1,60 @@
+{#
+    Field palette — rendered into Craft's details sidebar (the {% block details %}
+    in forms/edit.twig), shown only while the Layout tab is active.
+    Items are dragged into a row's field list. The `data-field-type` attribute
+    drives which field is created on drop (see modules/drag-handler.js).
+#}
+{% set paletteGroups = [
+    {
+        label: 'Fields'|t('easy-form'),
+        items: [
+            { type: 'text', label: 'Text'|t('easy-form') },
+            { type: 'email', label: 'Email'|t('easy-form') },
+            { type: 'number', label: 'Number'|t('easy-form') },
+            { type: 'textarea', label: 'Textarea'|t('easy-form') },
+            { type: 'tel', label: 'Phone'|t('easy-form') },
+            { type: 'url', label: 'URL'|t('easy-form') },
+            { type: 'date', label: 'Date'|t('easy-form') },
+            { type: 'datetime', label: 'Date & time'|t('easy-form') },
+            { type: 'time', label: 'Time'|t('easy-form') },
+            { type: 'hidden', label: 'Hidden'|t('easy-form') },
+            { type: 'select', label: 'Select (Dropdown)'|t('easy-form') },
+            { type: 'checkboxes', label: 'Checkboxes'|t('easy-form') },
+            { type: 'file', label: 'File Upload'|t('easy-form') },
+            { type: 'agree', label: 'Agree / Legal'|t('easy-form') }
+        ]
+    },
+    {
+        label: 'Content'|t('easy-form'),
+        items: [
+            { type: 'heading', label: 'Heading'|t('easy-form') },
+            { type: 'paragraph', label: 'Paragraph'|t('easy-form') },
+            { type: 'divider', label: 'Divider'|t('easy-form') },
+            { type: 'callout', label: 'Callout'|t('easy-form') }
+        ]
+    }
+] %}
+
+<aside class="ef-field-palette" aria-label="{{ 'Field types'|t('easy-form') }}">
+    <h3 class="ef-palette-title">{{ 'Add fields'|t('easy-form') }}</h3>
+    <p class="ef-palette-hint">{{ 'Click + to add to the highlighted row, or drag a field into any row.'|t('easy-form') }}</p>
+    {% for group in paletteGroups %}
+        <div class="ef-palette-group">
+            <h4 class="ef-palette-group-label">{{ group.label }}</h4>
+            <div class="ef-palette-items">
+                {% for item in group.items %}
+                    {% set addLabel = 'Add {type} field'|t('easy-form', { type: item.label }) %}
+                    <div class="ef-palette-item" data-field-type="{{ item.type }}" title="{{ item.label }}">
+                        <span class="ef-palette-item-handle" title="{{ 'Drag into a row'|t('easy-form') }}">
+                            <span class="ef-palette-item-grip" aria-hidden="true"></span>
+                            <span class="ef-palette-item-label">{{ item.label }}</span>
+                        </span>
+                        <button type="button" class="ef-palette-item-add" aria-label="{{ addLabel }}" title="{{ addLabel }}">
+                            <span aria-hidden="true">+</span>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+</aside>

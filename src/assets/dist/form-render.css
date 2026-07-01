@@ -1,0 +1,415 @@
+/**
+ * EasyForm - Front-end Form Styles
+ * Basic styling for rendered forms
+ */
+
+.easy-form {
+    max-width: 100%;
+}
+
+.easy-form-row {
+    display: flex;
+    /* Fields stack in a single column by default. Authors who want a
+       side-by-side row can override with `flex-direction: row`. */
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.easy-form-field {
+    flex: 1;
+    min-width: 0;
+}
+
+.easy-form-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.easy-form-field label .required {
+    color: #e5422b;
+    margin-left: 2px;
+}
+
+.easy-form-field-instructions {
+    display: block;
+    margin: -2px 0 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #6b7280;
+}
+
+/* All form controls size with their padding inside the box, so they never
+   overflow their field container. */
+.easy-form-field input,
+.easy-form-field select,
+.easy-form-field textarea {
+    box-sizing: border-box;
+}
+
+.easy-form-field input[type="text"],
+.easy-form-field input[type="email"],
+.easy-form-field input[type="number"],
+.easy-form-field input[type="tel"],
+.easy-form-field input[type="url"],
+.easy-form-field input[type="date"],
+.easy-form-field input[type="datetime-local"],
+.easy-form-field input[type="time"],
+.easy-form-field select,
+.easy-form-field textarea {
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    background-color: #fff;
+    transition: border-color 0.2s;
+}
+
+/* Free-text controls span the field width; date/time/select size to content. */
+.easy-form-field input[type="text"],
+.easy-form-field input[type="email"],
+.easy-form-field input[type="number"],
+.easy-form-field input[type="tel"],
+.easy-form-field input[type="url"],
+.easy-form-field textarea {
+    width: 100%;
+}
+
+.easy-form-field input:focus,
+.easy-form-field select:focus,
+.easy-form-field textarea:focus {
+    outline: none;
+    border-color: #0d78f2;
+    box-shadow: 0 0 0 3px rgba(13, 120, 242, 0.1);
+}
+
+/* Red border for an invalid field — but never at page load. Bare :invalid
+   would match a required-but-empty field immediately; instead:
+   - :user-invalid styles it live, only after the user edits/submits it;
+   - .error is added to the input by client-side validation on submit
+     (so untouched required fields also turn red when you try to submit);
+   - .has-error on the wrapper (below) covers server-returned errors. */
+.easy-form-field input:user-invalid,
+.easy-form-field select:user-invalid,
+.easy-form-field textarea:user-invalid,
+.easy-form-field input.error,
+.easy-form-field select.error,
+.easy-form-field textarea.error {
+    border-color: #e5422b;
+}
+
+.easy-form-field textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.easy-form-actions {
+    margin-top: 30px;
+}
+
+.easy-form-actions button[type="submit"] {
+    padding: 12px 24px;
+    background: #0d78f2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.easy-form-actions button[type="submit"]:hover {
+    background: #0b66d1;
+}
+
+.easy-form-actions button[type="submit"]:active {
+    background: #0954b0;
+}
+
+/* Success/Error Messages */
+.easy-form-message {
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.easy-form-message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.easy-form-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Field Errors */
+.easy-form-field.has-error input,
+.easy-form-field.has-error select,
+.easy-form-field.has-error textarea {
+    border-color: #e5422b;
+}
+
+/* File upload hint sits on its own line under the file input. */
+.easy-form-field input[type="file"] {
+    display: block;
+}
+
+/* The real file input is visually hidden but kept focusable; the styled label
+   below acts as the visible "choose files" trigger. */
+.easy-form-field .ef-file-input.ef-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.easy-form-field .ef-file-trigger {
+    display: inline-block;
+    padding: 8px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #f9fafb;
+    color: #374151;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.easy-form-field .ef-file-trigger:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.easy-form-field .ef-file-input:focus + .ef-file-trigger {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.easy-form-field .ef-file-list {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+
+.easy-form-field .ef-file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    margin-top: 6px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 14px;
+}
+
+.easy-form-field .ef-file-item .ef-file-name {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.easy-form-field .ef-file-item .ef-file-size {
+    flex: 0 0 auto;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.easy-form-field .ef-file-item .ef-file-remove {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 12px;
+    line-height: 22px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.easy-form-field .ef-file-item .ef-file-remove:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.easy-form-field .file-upload-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #6b7280;
+}
+
+.easy-form-field-error,
+.easy-form-error-message,
+.easy-form-field .field-error {
+    color: #e5422b;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+/* Multi-page Forms */
+.easy-form-page-hidden {
+    display: none;
+}
+
+/* Step indicator (opt-in) */
+.easy-form-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    list-style: none;
+    margin: 0 0 24px;
+    padding: 0;
+    counter-reset: easy-form-step;
+}
+
+.easy-form-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #9aa3af;
+    font-size: 14px;
+}
+
+.easy-form-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #e3e5e8;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.2s, color 0.2s;
+}
+
+.easy-form-step.is-active {
+    color: #1d2530;
+    font-weight: 600;
+}
+
+.easy-form-step.is-active .easy-form-step-num {
+    background: #0d78f2;
+    color: #fff;
+}
+
+.easy-form-step.is-complete .easy-form-step-num {
+    background: #cfe3fb;
+    color: #0d78f2;
+}
+
+.easy-form-page-label {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e3e5e8;
+}
+
+.easy-form-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.easy-form-prev,
+.easy-form-next {
+    padding: 12px 24px;
+    background: #e3e5e8;
+    color: #333;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.easy-form-prev:hover,
+.easy-form-next:hover {
+    background: #cdd0d4;
+}
+
+/* Conditional field visibility transition */
+.easy-form-field[data-conditions],
+.easy-form-page[data-conditions] {
+    transition: opacity 0.2s ease;
+}
+
+/* Submitting State */
+.easy-form button[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Hidden builder fields take no visual space */
+.easy-form-field-hidden { display: none; }
+
+/* Presentational (render-only) fields */
+.easy-form-presentational { flex: 1; min-width: 0; }
+
+.easy-form-heading {
+    margin: 8px 0 4px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #1d2530;
+}
+
+.easy-form-divider {
+    border: 0;
+    border-top: 1px solid #e3e5e8;
+    margin: 8px 0;
+}
+
+.easy-form-text {
+    margin: 8px 0;
+    line-height: 1.6;
+    color: #1d2530;
+}
+
+.easy-form-callout {
+    --easy-form-callout-accent: #0d78f2;
+    padding: 12px 14px;
+    border-left: 4px solid var(--easy-form-callout-accent);
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--easy-form-callout-accent) 8%, #fff);
+    color: #1d2530;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.easy-form-callout-info { --easy-form-callout-accent: #0d78f2; }
+.easy-form-callout-warning { --easy-form-callout-accent: #e0a800; }
+.easy-form-callout-success { --easy-form-callout-accent: #1a893d; }
+.easy-form-callout-error { --easy-form-callout-accent: #d33; }

@@ -1,0 +1,245 @@
+{% import '_includes/forms' as forms %}
+
+{% set index = index ?? 'new' %}
+{% set notification = notification ?? {} %}
+{% set idPrefix = 'notification-' ~ index %}
+{% set namePrefix = 'notificationSettings[' ~ index ~ ']' %}
+
+<div class="notification-block" data-index="{{ index }}">
+    <div class="notification-header">
+        <div class="notification-title">
+            <strong>{{ notification.name|default('New Notification') }}</strong>
+            <span class="notification-status {{ notification.enabled|default(true) ? 'on' : 'off' }}"></span>
+        </div>
+        <div class="notification-actions">
+            <button type="button" class="btn small delete-notification" title="Delete"><span data-icon="trash"></span></button>
+            <button type="button" class="btn small toggle-notification" title="Edit"><span data-icon="settings"></span></button>
+        </div>
+    </div>
+
+    <div class="notification-body" style="display: {{ index == 'new' ? 'block' : 'none' }};">
+        {{ forms.textField({
+            label: 'Notification Name'|t('easy-form'),
+            instructions: 'Internal name for this notification.'|t('easy-form'),
+            id: idPrefix ~ '-name',
+            name: namePrefix ~ '[name]',
+            value: notification.name|default(''),
+            class: 'notification-name-input',
+            required: true
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Enabled'|t('easy-form'),
+            id: idPrefix ~ '-enabled',
+            name: namePrefix ~ '[enabled]',
+            on: notification.enabled|default(true)
+        }) }}
+
+        <hr>
+
+        {{ forms.textField({
+            label: 'Recipients'|t('easy-form'),
+            instructions: 'Email addresses to notify (comma-separated). Use {email} or {field[handle]} to send to the submitter\'s email field.'|t('easy-form'),
+            id: idPrefix ~ '-recipients',
+            name: namePrefix ~ '[recipients]',
+            value: notification.recipients|default([])|join(', ')
+        }) }}
+
+        {{ forms.textField({
+            label: 'Subject'|t('easy-form'),
+            id: idPrefix ~ '-subject',
+            name: namePrefix ~ '[subject]',
+            value: notification.subject|default('New form submission')
+        }) }}
+
+        <div class="flex-fields">
+            {{ forms.textField({
+                label: 'Sender Name'|t('easy-form'),
+                id: idPrefix ~ '-senderName',
+                name: namePrefix ~ '[senderName]',
+                value: notification.senderName|default(''),
+                placeholder: 'System Name'
+            }) }}
+
+            {{ forms.textField({
+                label: 'Sender Email'|t('easy-form'),
+                id: idPrefix ~ '-senderEmail',
+                name: namePrefix ~ '[senderEmail]',
+                value: notification.senderEmail|default(''),
+                placeholder: 'system@email.com'
+            }) }}
+        </div>
+
+        {{ forms.textField({
+            label: 'Reply-To Email'|t('easy-form'),
+            id: idPrefix ~ '-replyTo',
+            name: namePrefix ~ '[replyTo]',
+            value: notification.replyTo|default('')
+        }) }}
+
+        {{ forms.textField({
+            label: 'CC'|t('easy-form'),
+            instructions: 'Comma-separated addresses to copy. Supports {fieldHandle} for a submitted email.'|t('easy-form'),
+            id: idPrefix ~ '-cc',
+            name: namePrefix ~ '[cc]',
+            value: notification.cc|default('')
+        }) }}
+
+        {{ forms.textField({
+            label: 'BCC'|t('easy-form'),
+            instructions: 'Comma-separated addresses to blind-copy.'|t('easy-form'),
+            id: idPrefix ~ '-bcc',
+            name: namePrefix ~ '[bcc]',
+            value: notification.bcc|default('')
+        }) }}
+
+        <hr>
+
+        {% set condOperators = {
+            equals: 'equals'|t('easy-form'),
+            notEquals: 'does not equal'|t('easy-form'),
+            contains: 'contains'|t('easy-form'),
+            notContains: 'does not contain'|t('easy-form'),
+            isEmpty: 'is empty'|t('easy-form'),
+            isNotEmpty: 'is not empty'|t('easy-form')
+        } %}
+        {% set condAction = notification.conditions.action ?? '' %}
+
+        <div class="notification-conditions" data-condition-prefix="{{ namePrefix }}[conditions]">
+            <div class="field">
+                <div class="heading"><label>{{ 'Conditional Sending'|t('easy-form') }}</label></div>
+                <div class="instructions"><p>{{ 'Only send this notification when the submission matches the rules below.'|t('easy-form') }}</p></div>
+            </div>
+
+            {{ forms.selectField({
+                label: 'When to send'|t('easy-form'),
+                id: idPrefix ~ '-cond-action',
+                name: namePrefix ~ '[conditions][action]',
+                options: [
+                    { label: 'Always send'|t('easy-form'), value: '' },
+                    { label: 'Send only if rules match'|t('easy-form'), value: 'show' },
+                    { label: 'Do not send if rules match'|t('easy-form'), value: 'hide' }
+                ],
+                value: condAction
+            }) }}
+
+            {{ forms.selectField({
+                label: 'Match'|t('easy-form'),
+                id: idPrefix ~ '-cond-logic',
+                name: namePrefix ~ '[conditions][logic]',
+                options: [
+                    { label: 'All rules'|t('easy-form'), value: 'all' },
+                    { label: 'Any rule'|t('easy-form'), value: 'any' }
+                ],
+                value: notification.conditions.logic ?? 'all'
+            }) }}
+
+            <div class="notification-rules">
+                {% for rule in notification.conditions.rules ?? [] %}
+                    {% set rname = namePrefix ~ '[conditions][rules][' ~ loop.index0 ~ ']' %}
+                    <div class="notification-rule">
+                        <input type="text" class="text" name="{{ rname }}[field]" value="{{ rule.field ?? '' }}" placeholder="{{ 'field handle'|t('easy-form') }}">
+                        <div class="select">
+                            <select name="{{ rname }}[operator]">
+                                {% for opVal, opLabel in condOperators %}
+                                    <option value="{{ opVal }}"{{ (rule.operator ?? 'equals') == opVal ? ' selected' : '' }}>{{ opLabel }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <input type="text" class="text" name="{{ rname }}[value]" value="{{ rule.value ?? '' }}" placeholder="{{ 'value'|t('easy-form') }}">
+                        <button type="button" class="btn small remove-notification-rule" title="{{ 'Remove'|t('easy-form') }}"><span data-icon="remove"></span></button>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" class="btn small add-notification-rule">{{ 'Add rule'|t('easy-form') }}</button>
+        </div>
+
+        <hr>
+
+        {{ forms.lightswitchField({
+            label: 'Attach uploaded files'|t('easy-form'),
+            instructions: 'Attach this submission’s uploaded files to the email. Files larger than the Max Attachment Size are skipped.'|t('easy-form'),
+            id: idPrefix ~ '-attachFiles',
+            name: namePrefix ~ '[attachFiles]',
+            on: notification.attachFiles|default(false)
+        }) }}
+
+        <hr>
+
+        <div class="field">
+            <div class="heading">
+                <label>{{ 'Email Content & Templates'|t('easy-form') }}</label>
+                <div class="instructions">
+                    <p>{{ 'Configure email content for each site. You can either use a Twig template file or define the content here.'|t('easy-form') }}</p>
+                </div>
+            </div>
+        </div>
+
+        {{ forms.selectField({
+            label: 'Content format'|t('easy-form'),
+            instructions: 'How the Email Content boxes below are rendered. Simple: plain text with your line breaks kept. Markdown: headings, bold, lists, links (no images). HTML: raw HTML. (The Twig template option always renders as Twig.)'|t('easy-form'),
+            id: idPrefix ~ '-contentFormat',
+            name: namePrefix ~ '[contentFormat]',
+            options: [
+                { label: 'Simple text'|t('easy-form'), value: 'simple' },
+                { label: 'Markdown'|t('easy-form'), value: 'markdown' },
+                { label: 'HTML'|t('easy-form'), value: 'html' }
+            ],
+            value: notification.contentFormat ?? 'simple'
+        }) }}
+
+        {% for site in craft.app.sites.getAllSites() %}
+            <div class="site-email-config field">
+                <div class="heading site-email-toggle" role="button" tabindex="0" aria-expanded="false">
+                    <label><span data-icon="world"></span>{{ site.name }} <span class="site-handle">({{ site.handle }})</span></label>
+                    <span class="site-email-caret" data-icon="downangle"></span>
+                </div>
+
+                <div class="site-email-body hidden">
+                {{ forms.lightswitchField({
+                    label: 'Send for this site'|t('easy-form'),
+                    instructions: 'Turn off to stop this notification for submissions from this site (its template/content is kept).'|t('easy-form'),
+                    id: idPrefix ~ '-siteEnabled-' ~ site.handle,
+                    name: namePrefix ~ '[siteEnabled][' ~ site.handle ~ ']',
+                    on: notification.siteEnabled[site.handle] ?? true
+                }) }}
+
+                {% set useTwigId = idPrefix ~ '-useTwig-' ~ site.handle %}
+                {% set contentId = idPrefix ~ '-content-' ~ site.handle %}
+                {% set templateId = idPrefix ~ '-template-' ~ site.handle %}
+
+                {{ forms.lightswitchField({
+                    label: 'Use Twig Template File'|t('easy-form'),
+                    id: useTwigId,
+                    name: namePrefix ~ '[siteUseTwig][' ~ site.handle ~ ']',
+                    on: notification.siteUseTwig[site.handle] ?? false,
+                    toggle: '#' ~ templateId ~ '-container',
+                    reverseToggle: '#' ~ contentId ~ '-container'
+                }) }}
+
+                <div id="{{ templateId }}-container" {% if not (notification.siteUseTwig[site.handle] ?? false) %}class="hidden"{% endif %}>
+                    {{ forms.textField({
+                        label: 'Template Path'|t('easy-form'),
+                        instructions: 'Path to Twig template (e.g., _emails/contact).'|t('easy-form'),
+                        id: templateId,
+                        name: namePrefix ~ '[siteTemplates][' ~ site.handle ~ ']',
+                        value: notification.siteTemplates[site.handle] ?? ''
+                    }) }}
+                </div>
+
+                <div id="{{ contentId }}-container" {% if (notification.siteUseTwig[site.handle] ?? false) %}class="hidden"{% endif %}>
+                    {{ forms.textareaField({
+                        label: 'Email Content'|t('easy-form'),
+                        instructions: 'Insert field values/labels with the buttons above. Formatting follows the Content format selected above.'|t('easy-form'),
+                        id: contentId,
+                        name: namePrefix ~ '[siteContent][' ~ site.handle ~ ']',
+                        value: notification.siteContent[site.handle] ?? '',
+                        rows: 6
+                    }) }}
+                </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>

@@ -1,0 +1,46 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Notify Markdown",
+    "handle": "e2eNotifyMarkdown",
+    "description": "Markdown content format: headings/bold render, newlines kept, images stripped (e2e).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null,
+    "notificationSettings": [
+      {
+        "enabled": true,
+        "name": "Markdown content",
+        "contentFormat": "markdown",
+        "recipients": ["notify-md@example.test"],
+        "subject": "Markdown notify",
+        "senderEmail": "no-reply@example.test",
+        "senderName": "Easy Form",
+        "siteContent": {
+          "default": "# Hello {field[name]}\nSecond **line**\n![pic](https://example.com/x.png)"
+        }
+      }
+    ]
+  }
+}

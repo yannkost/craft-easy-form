@@ -1,0 +1,129 @@
+{% import '_includes/forms' as forms %}
+
+{#
+    One frontend (allowlisted) field — builder-style tabbed card.
+    Variables:
+    - field: the frontend field definition (may be empty for the template)
+    - index: row index, or 'NEW_INDEX' for the JS template
+#}
+{% set index = index ?? 'NEW_INDEX' %}
+{% set field = field ?? {} %}
+{% set namePrefix = 'frontendFields[' ~ index ~ ']' %}
+
+{% set typeOptions = [] %}
+{% for t in ['string','number','boolean','array'] %}
+    {% set typeOptions = typeOptions|merge([{ label: t, value: t }]) %}
+{% endfor %}
+
+{% set efSites = craft.app.sites.getAllSites() %}
+{% set fieldSiteLabels = field.siteLabels ?? {} %}
+
+<div class="ef-frontend-field" data-index="{{ index }}">
+    <div class="ef-frontend-field-header">
+        <strong class="ef-frontend-field-title">{{ field.handle|default('New frontend field') }}</strong>
+        <span class="field-type-badge ef-ff-type-badge">{{ (field.type|default('string'))|upper }}</span>
+        <div class="ef-frontend-field-actions">
+            <button type="button" class="btn small ef-ff-toggle" title="{{ 'Settings'|t('app') }}"><span class="icon settings"></span></button>
+            <button type="button" class="btn small delete-frontend-field" title="{{ 'Delete'|t('app') }}"><span data-icon="trash" aria-label="{{ 'Delete'|t('app') }}"></span></button>
+        </div>
+    </div>
+
+    <div class="ef-frontend-field-body">
+        <nav class="ef-tabs ef-ff-tabs">
+            <a class="ef-tab active" data-ff-tab="general">{{ 'General'|t('easy-form') }}</a>
+            <a class="ef-tab" data-ff-tab="labels">{{ 'Labels'|t('easy-form') }}</a>
+            <a class="ef-tab" data-ff-tab="limits">{{ 'Limits'|t('easy-form') }}</a>
+            <a class="ef-tab" data-ff-tab="options">{{ 'Options'|t('easy-form') }}</a>
+        </nav>
+
+        {# General — handle + type #}
+        <div class="ef-ff-pane" data-ff-pane="general">
+            {{ forms.textField({
+                label: 'Handle'|t('easy-form'),
+                instructions: 'The fields[…] key your template submits.'|t('easy-form'),
+                name: namePrefix ~ '[handle]',
+                value: field.handle|default(''),
+                class: 'code ef-ff-handle',
+                required: true
+            }) }}
+
+            {{ forms.selectField({
+                label: 'Type'|t('easy-form'),
+                instructions: 'How the submitted value is coerced/stored.'|t('easy-form'),
+                name: namePrefix ~ '[type]',
+                options: typeOptions,
+                value: field.type|default('string'),
+                class: 'ef-ff-type'
+            }) }}
+        </div>
+
+        {# Labels — default + per-site overrides #}
+        <div class="ef-ff-pane" data-ff-pane="labels" style="display: none;">
+            {{ forms.textField({
+                label: 'Label'|t('easy-form'),
+                instructions: 'Default label (primary site + fallback). Shown in the CP, exports and email notifications.'|t('easy-form'),
+                name: namePrefix ~ '[label]',
+                value: field.label|default('')
+            }) }}
+
+            {% if efSites|length > 1 %}
+                <h4 class="heading">{{ 'Label overrides by site'|t('easy-form') }}</h4>
+                <p class="light">{{ 'Optional per-language label for the other sites.'|t('easy-form') }}</p>
+                {% for site in efSites|filter(s => not s.primary) %}
+                    {{ forms.textField({
+                        label: site.name ~ ' (' ~ site.handle ~ ')',
+                        name: namePrefix ~ '[siteLabels][' ~ site.handle ~ ']',
+                        value: fieldSiteLabels[site.handle] ?? '',
+                        placeholder: field.label|default('')
+                    }) }}
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        {# Limits — max items + max length #}
+        <div class="ef-ff-pane" data-ff-pane="limits" style="display: none;">
+            {{ forms.textField({
+                label: 'Max items'|t('easy-form'),
+                instructions: 'Maximum number of values for a list (array / multiple).'|t('easy-form'),
+                name: namePrefix ~ '[maxItems]',
+                type: 'number',
+                min: 1,
+                value: field.maxItems|default('')
+            }) }}
+
+            {{ forms.textField({
+                label: 'Max length'|t('easy-form'),
+                instructions: 'Maximum number of characters for a string value.'|t('easy-form'),
+                name: namePrefix ~ '[maxLength]',
+                type: 'number',
+                min: 1,
+                value: field.maxLength|default('')
+            }) }}
+        </div>
+
+        {# Options — switches #}
+        <div class="ef-ff-pane" data-ff-pane="options" style="display: none;">
+            {{ forms.lightswitchField({
+                label: 'Multiple'|t('easy-form'),
+                instructions: 'Treat the submitted value as a list.'|t('easy-form'),
+                name: namePrefix ~ '[multiple]',
+                on: field.multiple|default(false)
+            }) }}
+            {{ forms.lightswitchField({
+                label: 'Required'|t('easy-form'),
+                name: namePrefix ~ '[required]',
+                on: field.required|default(false)
+            }) }}
+            {{ forms.lightswitchField({
+                label: 'Include in exports'|t('easy-form'),
+                name: namePrefix ~ '[export]',
+                on: field.export|default(true)
+            }) }}
+            {{ forms.lightswitchField({
+                label: 'Include in notifications'|t('easy-form'),
+                name: namePrefix ~ '[notifications]',
+                on: field.notifications|default(true)
+            }) }}
+        </div>
+    </div>
+</div>

@@ -1,0 +1,82 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E i18n All Fields",
+    "handle": "e2eI18nAll",
+    "description": "Every field type, each with a French label override, used to verify per-site label translation across all field types (front end + email).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "All fields",
+          "rows": [
+            {
+              "id": "r1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f_text", "type": "text", "label": "Text", "handle": "textField", "siteLabels": { "french": "Texte" } },
+                { "id": "f_textarea", "type": "textarea", "label": "Textarea", "handle": "textareaField", "siteLabels": { "french": "Zone de texte" } }
+              ]
+            },
+            {
+              "id": "r2",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f_email", "type": "email", "label": "Email", "handle": "emailField", "required": true, "siteLabels": { "french": "Courriel" } },
+                { "id": "f_tel", "type": "tel", "label": "Phone", "handle": "phoneField", "siteLabels": { "french": "Téléphone" } }
+              ]
+            },
+            {
+              "id": "r3",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f_url", "type": "url", "label": "Website", "handle": "urlField", "siteLabels": { "french": "Site web" } },
+                { "id": "f_number", "type": "number", "label": "Number", "handle": "numberField", "siteLabels": { "french": "Nombre" } }
+              ]
+            },
+            {
+              "id": "r4",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f_date", "type": "date", "label": "Date", "handle": "dateField", "siteLabels": { "french": "Date FR" } },
+                { "id": "f_select", "type": "select", "label": "Choice", "handle": "selectField", "options": "a:A\nb:B", "siteLabels": { "french": "Choix" } }
+              ]
+            },
+            {
+              "id": "r5",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f_checkboxes", "type": "checkboxes", "label": "Boxes", "handle": "checkboxesField", "multiple": true, "options": "a:A\nb:B", "siteLabels": { "french": "Cases à cocher" } },
+                { "id": "f_file", "type": "file", "label": "File", "handle": "fileField", "siteLabels": { "french": "Fichier" } }
+              ]
+            },
+            {
+              "id": "r6",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f_agree", "type": "agree", "label": "Agreement", "handle": "agreeField", "agreeText": "I agree", "siteLabels": { "french": "J'accepte les conditions" } },
+                { "id": "f_hidden", "type": "hidden", "label": "Tracking", "handle": "hiddenField", "defaultValue": "src-fr", "siteLabels": { "french": "Suivi caché" } }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "emailField" }
+    },
+    "enabled": true,
+    "captchaProvider": null,
+    "notificationSettings": [
+      {
+        "enabled": true,
+        "name": "Admin notification",
+        "recipients": ["easyform-i18n-all@example.test"],
+        "subject": "New all-fields submission",
+        "senderEmail": "no-reply@example.test",
+        "senderName": "Easy Form"
+      }
+    ]
+  }
+}

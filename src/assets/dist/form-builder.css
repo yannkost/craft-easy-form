@@ -1,0 +1,1371 @@
+/**
+ * Form Builder CSS - Row-based Layout
+ */
+
+/* Fix icon clicks - make icons non-interactive so clicks pass through to button */
+.btn .icon,
+.btn [data-icon],
+.btn span[class*="icon"] {
+    pointer-events: none;
+}
+
+/* Required field indicator */
+.required-indicator {
+    color: #cf1124;
+    margin-left: 2px;
+    font-weight: bold;
+}
+
+/* ── Easy Form custom underline tabs ── */
+.ef-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #e3e8ef;
+    margin-bottom: 0;
+}
+
+/* Stretch row-level tabs to full row width */
+.layout-row-content > .ef-tabs {
+    margin-left: -20px;
+    margin-right: -20px;
+    padding-left: 20px;
+    background: #f8fafc;
+}
+
+/* Stretch field-level tabs to full field width */
+.field-in-row-settings > .ef-tabs {
+    margin-left: -14px;
+    margin-right: -14px;
+    padding-left: 14px;
+    background: #eef3f9;
+}
+
+.ef-tab {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b7280;
+    text-decoration: none;
+    /* !important to beat Craft CP's anchor mixin which resets cursor on <a>. */
+    cursor: pointer !important;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+
+.ef-tab:hover {
+    color: #2160e6;
+}
+
+.ef-tab.active {
+    color: #2160e6;
+    border-bottom-color: #2160e6;
+}
+
+/* Page-level tabs */
+#page-tabs {
+    margin-top: 16px;
+    background: #f8fafc;
+    border: 1px solid #e3e8ef;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+}
+
+#page-tabs .page-tab {
+    border-bottom-color: transparent;
+    color: #3f4d5a;
+}
+
+#page-tabs .page-tab.active {
+    background: #fff;
+    border-radius: 6px 6px 0 0;
+    border: 1px solid #e3e8ef;
+    border-bottom-color: #fff;
+    margin-bottom: -1px;
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.ef-tab--add {
+    color: #6b7280 !important;
+    border-bottom-color: transparent !important;
+    font-weight: 500;
+    cursor: pointer !important;
+}
+
+.ef-tab--add:hover {
+    color: #1b4fc0 !important;
+}
+
+.page-pane {
+    padding: 1.5rem;
+    border: 1px solid #e3e8ef;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    background: #fff;
+}
+
+/* ── Field settings popover ── */
+.field-popover-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.25);
+    align-items: center;
+    justify-content: center;
+}
+
+.field-in-row-settings {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+    width: 800px;
+    max-width: 90vw;
+    /* Fixed height so the dialog doesn't resize as you switch tabs — the header,
+       tabs and footer stay put and the active pane scrolls internally. */
+    height: min(82vh, 720px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+}
+
+/* Header, tab bar and footer keep their natural size; the active pane takes the
+   remaining space and scrolls. (Inactive panes are display:none, so only the
+   visible one participates in the flex layout.) */
+.field-popover-header,
+.field-in-row-settings > .ef-tabs,
+.field-dialog-footer {
+    flex: 0 0 auto;
+}
+
+/* Rounder inputs inside the field-settings panes (match the design). */
+.field-settings-pane .text,
+.field-settings-pane input.text,
+.field-settings-pane textarea { border-radius: 10px; }
+
+/* The dialog is wide for readability, but single-line inputs needn't stretch the
+   full width — cap them so they stay comfortable to scan. Textareas (options,
+   help text) keep the full width. */
+.field-settings-pane input.text,
+.field-settings-pane select.text {
+    max-width: 400px;
+}
+
+.field-popover-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e3e8ef;
+}
+
+.field-popover-header strong {
+    flex: 1;
+    font-size: 15px;
+}
+
+.field-popover-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.field-popover-close:hover {
+    color: #374151;
+}
+
+.field-in-row-settings > .ef-tabs {
+    margin: 0;
+    padding-left: 20px;
+    background: #f8fafc;
+}
+
+/* Field settings pane content. The visible pane fills the dialog's remaining
+   height and scrolls on its own (min-height:0 lets a flex child shrink so its
+   own overflow engages rather than stretching the dialog). */
+.field-settings-pane {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.form-rows {
+    margin-bottom: 20px;
+}
+
+/* Layout Row Styles */
+.layout-row {
+    background: #fff;
+    border: 1px solid #e3e8ef;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    padding: 0;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+}
+
+/* While a field's settings dialog is open, lift this row's stacking context
+   above its siblings so the fixed modal (which lives inside the row) isn't
+   painted over by a later row. See openFieldDialog() in event-handlers.js. */
+.layout-row.ef-dialog-open {
+    z-index: 100;
+}
+
+/* The "add target" row: where a click on a palette + button drops the field.
+   The box-shadow ring renders outside the border box, so overflow:hidden on
+   the row doesn't clip it. */
+.layout-row.is-add-target {
+    border-color: #2160e6;
+    box-shadow: 0 0 0 3px rgba(33, 96, 230, 0.18);
+}
+.ef-row-target-badge {
+    display: none;
+    align-items: center;
+    margin-left: 8px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: #2160e6;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.layout-row.is-add-target .ef-row-target-badge {
+    display: inline-flex;
+}
+
+.layout-row-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0;
+    padding: 14px 20px;
+    background: #fff;
+    border-bottom: 1px solid #e3e8ef;
+}
+
+.layout-row-handle {
+    cursor: move;
+    color: #8f98a3;
+}
+
+.layout-row-content {
+    padding: 0 20px 20px;
+    background: #f8fafc;
+}
+
+.row-tab-content {
+    padding: 12px 0 0 0;
+}
+
+.row-tab-pane {
+    display: none;
+}
+
+.row-tab-pane.active {
+    display: block;
+}
+
+/* Breathing room between a page pane's inner tab bar and its content. */
+.page-inner-pane {
+    padding-top: 30px;
+}
+
+/* Condition Action + Logic + Add Rule on one row: natural widths, a gap between,
+   bottom-aligned (the selects' labels sit above, so flex-end lines them up).
+   The row spacing lives on the wrapper — the children's own bottom margin is
+   zeroed, otherwise flex counts it in the line height and drops the button
+   below the selects. */
+.ef-cond-action-logic {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 26px;
+}
+.ef-cond-action-logic > .field {
+    margin-bottom: 0 !important;
+}
+
+.layout-row-label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.field-count-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #eef3fe;
+    border: 1px solid #cdddfb;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #2160e6;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.layout-row-actions {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+/* Row header buttons: white bg, gray border, outlined */
+.layout-row-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0 !important;
+    line-height: 1;
+    background: #fff !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 6px !important;
+    color: #6b7280;
+    box-shadow: none !important;
+}
+
+.layout-row-actions .btn:hover {
+    border-color: #9ca3af !important;
+    color: #374151;
+}
+
+/* Field header buttons: ghost style, no bg/border, just icon */
+.field-in-row-actions .btn,
+.ef-frontend-field-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px;
+    min-height: 26px;
+    padding: 0 !important;
+    line-height: 1;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 4px !important;
+    color: #9ca3af;
+    box-shadow: none !important;
+}
+
+.field-in-row-actions .btn:hover,
+.ef-frontend-field-actions .btn:hover {
+    background: #f3f4f6 !important;
+    color: #6b7280;
+}
+
+.layout-row-actions .btn .icon,
+.field-in-row-actions .btn .icon,
+.ef-frontend-field-actions .btn .icon,
+.notification-actions .btn .icon,
+.layout-row-actions .btn [data-icon],
+.field-in-row-actions .btn [data-icon],
+.ef-frontend-field-actions .btn [data-icon],
+.notification-actions .btn [data-icon] {
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-block !important;
+    width: auto !important;
+    height: auto !important;
+    line-height: 1 !important;
+    font-size: 12px !important;
+    vertical-align: middle !important;
+}
+
+.layout-row-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 40px;
+}
+
+.layout-row-settings {
+    padding: 4px 0;
+}
+/* Row-settings inputs sit on the row's tinted pane — give them a white field
+   background like the rest of the builder inputs. */
+.layout-row-settings input.text,
+.layout-row-settings .text {
+    background-color: #fff;
+}
+
+/* Placeholder shown while a server-rendered field (e.g. agree) is being fetched. */
+.field-in-row.ef-field-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.empty-row-message {
+    width: 100%;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Field in Row Styles - Stacked in builder, responsive on frontend */
+.field-in-row {
+    background: #fff;
+    border: 1px solid #e3e8ef;
+    border-radius: 10px;
+    padding: 0;
+    width: 100%;
+    overflow: hidden;
+}
+
+.field-in-row-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    padding: 10px 14px;
+    background: transparent;
+}
+
+.field-in-row-handle {
+    cursor: move;
+    color: #8f98a3;
+}
+
+.field-in-row-label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.field-type-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    background: #eef1f6;
+    border: 1px solid #e3e8ef;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #5a6573;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* Per-type badge colours, so the field types in a row are quick to tell apart.
+   Each rule sets background / border / text from one hue. */
+.field-in-row[data-field-type="text"] .field-type-badge       { background: #eaf1fe; border-color: #cfe0fd; color: #1d4ed8; }
+.field-in-row[data-field-type="textarea"] .field-type-badge   { background: #eef0fe; border-color: #d6dafb; color: #4338ca; }
+.field-in-row[data-field-type="email"] .field-type-badge      { background: #e6f7f4; border-color: #c2ebe3; color: #0f766e; }
+.field-in-row[data-field-type="number"] .field-type-badge     { background: #fdf3e3; border-color: #f7e1bd; color: #b45309; }
+.field-in-row[data-field-type="tel"] .field-type-badge,
+.field-in-row[data-field-type="phone"] .field-type-badge      { background: #e5f6fb; border-color: #c0e8f3; color: #0e7490; }
+.field-in-row[data-field-type="url"] .field-type-badge        { background: #f3ecfe; border-color: #e0d0fb; color: #6d28d9; }
+.field-in-row[data-field-type="date"] .field-type-badge,
+.field-in-row[data-field-type="datetime"] .field-type-badge,
+.field-in-row[data-field-type="time"] .field-type-badge       { background: #fdebf3; border-color: #f7c9de; color: #be185d; }
+.field-in-row[data-field-type="select"] .field-type-badge     { background: #e8f6ea; border-color: #c8e9cd; color: #15803d; }
+.field-in-row[data-field-type="checkboxes"] .field-type-badge { background: #e6f6ef; border-color: #c2e8d6; color: #047857; }
+.field-in-row[data-field-type="file"] .field-type-badge       { background: #fdefe5; border-color: #f7d7bf; color: #c2410c; }
+.field-in-row[data-field-type="agree"] .field-type-badge      { background: #f4ecfd; border-color: #e2d2fa; color: #7c3aed; }
+.field-in-row[data-field-type="hidden"] .field-type-badge     { background: #eef1f6; border-color: #dfe4ec; color: #64748b; }
+
+/* Content (presentational) fields get a distinct row tint so they read as
+   layout/structure rather than inputs. */
+.field-in-row[data-field-type="heading"],
+.field-in-row[data-field-type="paragraph"],
+.field-in-row[data-field-type="divider"],
+.field-in-row[data-field-type="callout"] {
+    background: #f7f6fb;
+    border-color: #e4e1f0;
+}
+.field-in-row[data-field-type="heading"] .field-type-badge,
+.field-in-row[data-field-type="paragraph"] .field-type-badge,
+.field-in-row[data-field-type="divider"] .field-type-badge,
+.field-in-row[data-field-type="callout"] .field-type-badge {
+    background: #efeaf9;
+    border-color: #ddd4f0;
+    color: #6b50b8;
+}
+
+.field-in-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+/* Quick "Required" toggle in the field row header. Muted when off, red (matching
+   the required asterisk) when on. */
+/* Agree field: per-language checkbox values table. */
+.ef-agree-values {
+    margin-top: 24px;
+}
+.ef-agree-values .ef-agree-srow {
+    padding: 10px 0;
+    border-top: 1px solid #eceef1;
+}
+.ef-agree-values .ef-agree-sname {
+    font-weight: 600;
+    font-size: 12px;
+    margin-bottom: 6px;
+}
+.ef-agree-values .ef-agree-sname span { font-weight: 400; color: #777; }
+.ef-agree-values .ef-agree-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+}
+.ef-agree-values .ef-agree-ctl {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11px;
+    color: #67737f;
+}
+.ef-agree-values .ef-agree-ctl input.text { min-width: 160px; }
+
+.ef-quick-required {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    height: 24px;
+    padding: 0 9px;
+    border: 1px solid #d1d5db;
+    border-radius: 999px;
+    background: #fff;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.ef-quick-required:hover {
+    border-color: #9ca3af;
+    color: #374151;
+}
+.ef-quick-required .ef-quick-required-star {
+    color: #b6bcc6;
+    font-weight: 700;
+    font-size: 13px;
+}
+.ef-quick-required.is-on {
+    background: #fdeced;
+    border-color: #f1c4c4;
+    color: #cf1124;
+}
+.ef-quick-required.is-on .ef-quick-required-star {
+    color: #cf1124;
+}
+
+
+/* Note: The responsive behavior will be handled in the frontend form rendering, 
+   not in the admin builder interface. The builder always shows fields stacked 
+   for easier editing. */
+
+/* Sortable helpers */
+.layout-row.ui-sortable-helper {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.field-in-row.ui-sortable-helper {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: rotate(2deg);
+}
+
+/* Notification Blocks */
+.notification-block {
+    background: #fff;
+    border: 1px solid #e3e5e8;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.notification-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 15px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #e3e5e8;
+    cursor: pointer;
+}
+
+.notification-header:hover {
+    background: #f3f3f3;
+}
+
+.notification-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #3f4d5a;
+}
+
+.notification-status {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ccc;
+}
+
+.notification-status.on {
+    background: #27ab83;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.notification-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    width: 30px;
+    padding: 0;
+}
+
+.notification-body {
+    padding: 15px;
+}
+
+.notification-body .field:last-child {
+    margin-bottom: 0;
+}
+
+/* Per-site email configuration blocks — each site is a collapsible card
+   (closed by default) with a prominent header so it's obvious which
+   settings belong to which site. */
+.site-email-config {
+    border: 1px solid #e3e5e8;
+    border-radius: 5px;
+    background: #fbfcfd;
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.site-email-config > .heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+    padding: 12px 16px;
+    background: #eef1f5;
+    cursor: pointer;
+    user-select: none;
+}
+
+.site-email-config > .heading:hover {
+    background: #e7ebf1;
+}
+
+.site-email-config > .heading > label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2933;
+    cursor: pointer;
+}
+
+.site-email-config > .heading > label [data-icon] {
+    color: #8b97a3;
+    font-size: 15px;
+}
+
+.site-email-config > .heading > label .site-handle {
+    font-size: 13px;
+    font-weight: 400;
+    color: #8b97a3;
+}
+
+.site-email-caret {
+    color: #8b97a3;
+    transition: transform 0.15s ease;
+}
+
+.site-email-config.is-open .site-email-caret {
+    transform: rotate(180deg);
+}
+
+.site-email-config.is-open > .heading {
+    border-bottom: 1px solid #e3e5e8;
+}
+
+.site-email-body {
+    padding: 16px;
+}
+
+/* Conditional-sending rule rows */
+.notification-conditions { margin-bottom: 16px; }
+.notification-rules { margin: 8px 0; }
+.notification-rule {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.notification-rule input.text { flex: 1; min-width: 0; }
+.notification-rule .select { flex: 0 0 auto; }
+
+/* Flex fields for sender/email pair */
+.flex-fields {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 24px;
+}
+
+.flex-fields .field {
+    flex: 1;
+    margin-bottom: 0 !important;
+}
+
+/* Increase grouping title size in field settings */
+.field-settings-pane h3,
+.field-settings-pane h4.heading {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #3f4d5a;
+}
+
+/* Give the field-settings rows room to breathe — the default Craft spacing
+   leaves labels/instructions cramped against their inputs. */
+.field-settings-pane .field {
+    margin-bottom: 26px;
+}
+.field-settings-pane .field:last-child {
+    margin-bottom: 0;
+}
+.field-settings-pane .field > .heading {
+    margin-bottom: 8px;
+}
+
+/* Save / Cancel footer for the field settings dialog. Sticks to the bottom of
+   the scrollable dialog so the actions stay reachable on long field types. */
+.field-dialog-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 20px;
+    background: #fff;
+    border-top: 1px solid #e3e8ef;
+    border-radius: 0 0 16px 16px;
+}
+.field-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* Validation banner shown in the dialog when "Save field" is blocked. */
+.field-dialog-error {
+    position: relative;
+    margin: 0;
+    padding: 9px 12px 9px 34px;
+    background: #fdecec;
+    border: 1px solid #f3c2c2;
+    border-left: 3px solid #cf2e2e;
+    border-radius: 8px;
+    color: #7a1f1f;
+    font-size: 0.9rem;
+}
+.field-dialog-error[hidden] {
+    display: none;
+}
+.field-dialog-error::before {
+    content: "!";
+    position: absolute;
+    left: 11px;
+    top: 9px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #cf2e2e;
+    color: #fff;
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 16px;
+    text-align: center;
+}
+.field-dialog-error > div + div {
+    margin-top: 2px;
+}
+
+/* ── Localized (per-site) text fields ────────────────────────────────────
+   The main site's input with a collapsible "Translations" block for the other
+   sites. Shared by the JS builder and the _localized.twig macro. */
+.ef-localized-site {
+    font-weight: 400;
+    font-size: 11px;
+    color: #9aa5b1;
+    margin-left: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+/* Per-site "Enabled on these sites" block. Give it a consistent bottom gap so
+   the following content (e.g. a page's .form-rows) doesn't sit flush against it
+   — JS-built pages can't rely on the inline margin the Twig version sets. */
+.ef-site-enable {
+    margin-bottom: 15px;
+}
+
+/* Per-site link list (agree field): one site's link rows under a small site
+   name, plus an "Add link" button. Each row pairs a phrase with a target. */
+.ef-link-site {
+    margin-bottom: 18px;
+}
+.ef-link-list {
+    margin-bottom: 8px;
+}
+/* One link row: [text] [Entry select] [custom URL] [remove], on one line.
+   The element select is forced inline so it sits in the row like the inputs. */
+.ef-link-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.ef-link-row > input,
+.ef-link-row .ef-link-entry {
+    min-width: 0;
+}
+.ef-link-row .ef-link-text {
+    flex: 1.4 1 0;
+}
+.ef-link-row .ef-link-entry {
+    flex: 2 1 0;
+}
+.ef-link-row .ef-link-entry .elementselect,
+.ef-link-row .ef-link-entry .elements {
+    margin: 0;
+}
+.ef-link-row .ef-link-url {
+    flex: 1.4 1 0;
+}
+.ef-link-row .remove-link-row {
+    flex: 0 0 auto;
+}
+.add-link-row {
+    margin-top: 2px;
+}
+.ef-link-sname {
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: #606d7b;
+    margin-bottom: 4px;
+}
+.ef-link-sname span {
+    font-weight: 400;
+    text-transform: none;
+}
+.ef-localized-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 8px;
+    padding: 2px 0;
+    background: none;
+    border: none;
+    color: #2160e6;
+    font-size: 0.85rem;
+    font-weight: 600; /* subtle bold "Translations" */
+    cursor: pointer;
+}
+.ef-localized-toggle:hover {
+    color: #1a4fc4;
+}
+/* Chevron (replaces the old triangle): a touch bigger, rotates down on open. */
+.ef-localized-caret {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 auto;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.6'%20stroke-linecap='round'%20stroke-linejoin='round'><path%20d='m9%206%206%206-6%206'/></svg>") center / contain no-repeat;
+    mask: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2.6'%20stroke-linecap='round'%20stroke-linejoin='round'><path%20d='m9%206%206%206-6%206'/></svg>") center / contain no-repeat;
+    transition: transform 0.15s ease;
+}
+.ef-localized-toggle[aria-expanded="true"] .ef-localized-caret {
+    transform: rotate(90deg);
+}
+/* Globe, sits between the chevron and the "Translations" label. */
+.ef-localized-globe {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 auto;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='1.9'%20stroke-linecap='round'%20stroke-linejoin='round'><circle%20cx='12'%20cy='12'%20r='9'/><path%20d='M3%2012h18'/><path%20d='M12%203a15%2015%200%200%201%200%2018%2015%2015%200%200%201%200-18'/></svg>") center / contain no-repeat;
+    mask: url("data:image/svg+xml,<svg%20xmlns='http%3A//www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='1.9'%20stroke-linecap='round'%20stroke-linejoin='round'><circle%20cx='12'%20cy='12'%20r='9'/><path%20d='M3%2012h18'/><path%20d='M12%203a15%2015%200%200%201%200%2018%2015%2015%200%200%201%200-18'/></svg>") center / contain no-repeat;
+}
+/* Pill around the site count after "Translations". */
+.ef-localized-count {
+    margin-left: 1px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: rgba(33, 96, 230, 0.1);
+    color: #2160e6;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.6;
+}
+/* The expanded rail: each row hangs off a soft vertical line by a short tick. */
+.ef-localized-others {
+    position: relative;
+    margin: 16px 0 0 6px;
+    padding-left: 18px;
+    border-left: 2px solid transparent;
+    border-image: linear-gradient(180deg, #d3def4, #e9edf4) 1;
+}
+.ef-localized-others .field {
+    position: relative;
+    margin-bottom: 14px;
+}
+.ef-localized-others .field:last-child {
+    margin-bottom: 0;
+}
+/* Horizontal trait connecting each row to the left rail. */
+.ef-localized-others .field::before {
+    content: "";
+    position: absolute;
+    left: -18px;
+    top: 11px;
+    width: 12px;
+    height: 2px;
+    background: #d3def4;
+    border-radius: 2px;
+}
+.ef-localized-others .heading label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #344256;
+}
+.ef-localized-others .ef-localized-site {
+    margin-left: 0;
+}
+/* Square badge with the site's language code, before the website name. */
+.ef-localized-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: rgba(33, 96, 230, 0.1);
+    color: #2160e6;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-transform: uppercase;
+}
+
+/* Info-box callout: light-blue box with a circled "i" icon. Used for the
+   id/class hints in the Advanced tab and the explanatory note on Conditions. */
+.ef-info,
+.field-settings-pane[data-pane="advanced"] .instructions {
+    position: relative;
+    margin: 0 0 10px;
+    padding: 9px 12px 9px 34px;
+    background: #eef5ff;
+    border: 1px solid #e0ebfc;
+    border-radius: 8px;
+    color: #2c4a73;
+}
+.ef-info::before,
+.field-settings-pane[data-pane="advanced"] .instructions::before {
+    content: "i";
+    position: absolute;
+    left: 11px;
+    top: 10px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #2160e6;
+    color: #fff;
+    font-family: Georgia, "Times New Roman", serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 16px;
+    text-align: center;
+}
+.ef-info p,
+.field-settings-pane[data-pane="advanced"] .instructions p {
+    margin: 0;
+}
+.ef-info code,
+.field-settings-pane[data-pane="advanced"] .instructions code {
+    padding: 1px 4px;
+    background: rgba(33, 96, 230, 0.1);
+    border-radius: 4px;
+    font-size: 0.92em;
+}
+
+/* Condition rules. Craft's cp.css renders `.condition-rule` as a stacked card
+   and rounds only the first rule's top corners (its native builder rounds the
+   bottom via a `.condition-footer`, which we don't render). Round the last
+   rule's bottom so a single rule — or the bottom of a stack — isn't squared
+   off, and let the rules sit flush (no inter-rule gap). */
+.condition-rule:last-child {
+    border-end-start-radius: var(--radius-lg, 8px);
+    border-end-end-radius: var(--radius-lg, 8px);
+}
+.add-condition-rule { margin-top: 12px; }
+
+/* Lay every rule's parts out on one line (field / operator / value / site /
+   remove). Saved rules (Twig) and new rules (JS) share this so they look the
+   same. min-width:0 lets the inputs shrink instead of overflowing. */
+.condition-rule {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.condition-rule > input,
+.condition-rule > select { min-width: 0; }
+.condition-rule > .ef-cond-field,
+.condition-rule > .ef-cond-value { flex: 2 1 0; }
+.condition-rule > .ef-cond-operator,
+.condition-rule > .ef-cond-site { flex: 1.4 1 0; }
+.condition-rule > .remove-condition-rule { flex: 0 0 auto; }
+
+/* "Must be unique" toggle sits above the length/value fields — give it the same
+   bottom spacing as a normal settings block so it doesn't crowd them. */
+.validation-unique-field { margin-bottom: 26px; }
+
+/* ── Frontend & Data tab ─────────────────────────────────────────── */
+.ef-frontend-field {
+    border: 1px solid #cdd8e4;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    background: #fff;
+}
+.ef-frontend-field-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: #f7f9fc;
+    border-radius: 5px 5px 0 0;
+}
+.ef-frontend-field-title {
+    font-family: monospace;
+    color: #3f4d5a;
+    flex: 1 1 auto;
+}
+.ef-frontend-field-actions {
+    display: flex;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+.ef-ff-type-badge {
+    flex: 0 0 auto;
+}
+.ef-frontend-field-body {
+    padding: 0 12px 12px;
+    border-top: 1px solid #e3e5e8;
+}
+.ef-ff-tabs {
+    margin: 0 -12px 12px;
+    padding: 0 12px;
+}
+.ef-ff-pane > .field:first-child {
+    margin-top: 12px;
+}
+
+/* ── Save validation: flag fields that aren't configured ───────── */
+.field-in-row.has-config-error {
+    border: 1px solid #cf1124;
+    border-radius: 8px;
+    box-shadow: 0 0 0 2px rgba(207, 17, 36, 0.12);
+}
+.field-in-row.has-config-error .field-in-row-header {
+    background: #fdf2f2;
+}
+.field-config-error {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #fdecea;
+    border: 1px solid #f5c2c0;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #cf1124;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.field-in-row .field-label-input.error,
+.field-in-row .field-handle-input.error {
+    border-color: #cf1124 !important;
+    box-shadow: 0 0 0 1px #cf1124 !important;
+}
+
+/* ── Field palette (lives in Craft's details sidebar) ──────────── */
+/* Craft's #details column controls width/position; we style it as its own
+   white card, sitting below the meta block. */
+.ef-field-palette {
+    /* Bleed out by the details pane's padding (like Craft's own .meta block)
+       so the card is as wide as the meta above it, not narrower. */
+    margin-inline: var(--neg-padding, -14px);
+    margin-block-end: 16px;
+    background: #fff;
+    border: 1px solid #e3e8ef;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 6px 16px rgba(16,24,40,.05);
+    padding: 16px;
+}
+.ef-palette-title {
+    margin: 0 0 2px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2530;
+}
+.ef-palette-hint {
+    margin: 0 0 14px;
+    font-size: 12px;
+    color: #8893a2;
+}
+.ef-palette-group + .ef-palette-group {
+    margin-top: 16px;
+}
+.ef-palette-group-label {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #8893a2;
+}
+.ef-palette-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.ef-palette-item {
+    display: flex;
+    align-items: stretch;
+    background: #f8fafc;
+    border: 1px solid #e3e8ef;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #3f4d5a;
+    user-select: none;
+    overflow: hidden;
+}
+.ef-palette-item:hover {
+    border-color: #cdddfb;
+}
+/* Left zone: the drag handle (grip + label). */
+.ef-palette-item-handle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 8px 10px;
+    cursor: grab;
+}
+.ef-palette-item-handle:active {
+    cursor: grabbing;
+}
+.ef-palette-item:hover .ef-palette-item-handle {
+    background: #f3f7fc;
+    color: #2160e6;
+}
+.ef-palette-item-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* Right zone: the click-to-add button, split off by a border. */
+.ef-palette-item-add {
+    flex: 0 0 auto;
+    width: 32px;
+    border: 0;
+    border-left: 1px solid #e3e8ef;
+    background: #fff;
+    color: #51607a;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+.ef-palette-item-add:hover {
+    background: #2160e6;
+    color: #fff;
+}
+.ef-palette-item-add:focus-visible {
+    outline: 2px solid #2160e6;
+    outline-offset: -2px;
+}
+.ef-palette-item-grip {
+    flex: 0 0 auto;
+    width: 10px;
+    height: 14px;
+    background-image: radial-gradient(currentColor 1px, transparent 1px);
+    background-size: 5px 4px;
+    background-position: 0 1px;
+    opacity: 0.4;
+}
+.ef-palette-item.sortable-ghost {
+    opacity: 0.4;
+}
+.ef-palette-item.sortable-drag {
+    cursor: grabbing;
+}
+
+/* ── Email content chip editor (notifications) ──────────────────────────── */
+.ef-email-editor { margin-top: 4px; position: relative; }
+.ef-email-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.ef-email-insert {
+    max-width: 220px;
+    padding: 5px 8px;
+    border: 1px solid #cdd8e4;
+    border-radius: 8px;
+    background: #f7f9fc;
+    font-size: 12px;
+    color: #3f4d5a;
+    cursor: pointer;
+}
+.ef-email-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    font-size: 11px;
+    color: #67737f;
+}
+.ef-email-legend .ef-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.ef-email-legend .ef-legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    display: inline-block;
+}
+.ef-legend-swatch.ef-swatch-field { background: #eaf1fe; border: 1px solid #cfe0fd; }
+.ef-legend-swatch.ef-swatch-label { background: #e8f6ea; border: 1px solid #c8e9cd; }
+.ef-legend-swatch.ef-swatch-combo { background: #fdf3e3; border: 1px solid #f7e1bd; }
+.ef-legend-swatch.ef-swatch-table { background: #eef0fb; border: 1px solid #d6dbf5; }
+.ef-email-surface {
+    min-height: 130px;
+    padding: 10px 12px;
+    border: 1px solid #cdd8e4;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.ef-email-surface:focus {
+    outline: none;
+    border-color: #2160e6;
+    box-shadow: 0 0 0 3px rgba(33, 96, 230, 0.1);
+}
+.ef-token {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin: 0 1px;
+    padding: 0 4px 0 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.7;
+    white-space: nowrap;
+    user-select: none;
+}
+.ef-token-text { pointer-events: none; }
+.ef-token-field { background: #eaf1fe; border: 1px solid #cfe0fd; color: #1d4ed8; }
+.ef-token-label { background: #e8f6ea; border: 1px solid #c8e9cd; color: #15803d; }
+.ef-token-combo,
+.ef-token-comboInline { background: #fdf3e3; border: 1px solid #f7e1bd; color: #b45309; }
+.ef-token-table { background: #eef0fb; border: 1px solid #d6dbf5; color: #4338ca; }
+.ef-token.is-bold .ef-token-text { font-weight: 800; }
+.ef-token-b,
+.ef-token-layout {
+    border: 0;
+    background: none;
+    cursor: pointer;
+    padding: 0 2px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.45;
+    border-radius: 3px;
+}
+.ef-token-b:hover,
+.ef-token-layout:hover { opacity: 0.9; }
+.ef-token-layout { font-size: 13px; }
+.ef-token.is-bold .ef-token-b { opacity: 1; background: rgba(0, 0, 0, 0.08); }
+
+/* Table-field picker popover (opened from the "Insert table…" button). */
+.ef-table-picker {
+    position: absolute;
+    z-index: 20;
+    top: 38px;
+    left: 0;
+    width: 320px;
+    max-width: 100%;
+    padding: 12px;
+    background: #fff;
+    border: 1px solid #cdd8e4;
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(31, 41, 55, 0.18);
+}
+.ef-table-picker-head { font-weight: 600; font-size: 13px; margin-bottom: 8px; }
+.ef-table-picker-list {
+    max-height: 240px;
+    overflow-y: auto;
+    margin: 6px 0 10px;
+    border-top: 1px solid #eceef1;
+    padding-top: 6px;
+}
+.ef-tp-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 2px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.ef-tp-all-row { padding-bottom: 4px; }
+.ef-tp-handle { color: #9aa5b1; font-size: 11px; }
+.ef-tp-empty { color: #9aa5b1; font-size: 12px; padding: 8px 2px; }
+.ef-table-picker-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.ef-token-x {
+    border: 0;
+    background: none;
+    cursor: pointer;
+    padding: 0 2px;
+    font-size: 15px;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.6;
+}
+.ef-token-x:hover { opacity: 1; }

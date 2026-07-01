@@ -1,0 +1,181 @@
+{# 
+    Template for rendering a form on the front-end
+    
+    Variables:
+    - form: Form model
+    - options: Array of rendering options
+    
+    Multi-page: All pages are rendered in the DOM. JS shows one page at a time.
+    Final submit sends all fields in a single POST.
+#}
+
+{% set formId = 'easy-form-' ~ form.id %}
+
+{# Per-site structural localization: a page is rendered only when it's enabled on
+   the current site AND still has at least one site-enabled field here — so a page
+   left empty by disabled rows/fields is dropped, not shown as a blank wizard step.
+   Reassigning `pages` to this list makes the step count, indicator, page loop and
+   contiguous data-page numbering below all site-aware with no further changes.
+   Conditions are NOT considered here — those are evaluated client-side. #}
+{% set visiblePages = [] %}
+{% for page in form.pages|default([]) %}
+    {% if (page.siteEnabled[currentSite.handle] ?? true) %}
+        {% set pageHasField = false %}
+        {% for row in page.rows|default([]) %}
+            {% if (row.siteEnabled[currentSite.handle] ?? true) %}
+                {% for f in row.fields|default([]) %}
+                    {% if (f.siteEnabled[currentSite.handle] ?? true) %}{% set pageHasField = true %}{% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
+        {% if pageHasField %}{% set visiblePages = visiblePages|merge([page]) %}{% endif %}
+    {% endif %}
+{% endfor %}
+
+{% set pages = visiblePages %}
+{% set isMultiPage = pages|length > 1 %}
+
+{# Resolve the form's CAPTCHA provider, if any and configured. #}
+{% set captcha = form.captchaProvider ? easyFormCaptcha(form.captchaProvider) : null %}
+{% set captchaUsable = captcha and captcha.isConfigured() %}
+
+{# JS (AJAX submit + events) always; the bundled stylesheet only when enabled. #}
+{% do view.registerAssetBundle('yannkost\\easyform\\assets\\FormAssetBundle') %}
+{% if options.includeStyles ?? true %}
+    {% do view.registerAssetBundle('yannkost\\easyform\\assets\\FormStyleAsset') %}
+{% endif %}
+
+<form
+    id="{{ formId }}"
+    {# `easy-form` is always present; any custom `class` option is appended (not replaced). #}
+    class="{{ (['easy-form']|merge((options.class|default(''))|split(' ')|filter(c => c|trim and c != 'easy-form')))|join(' ') }}"
+    method="post"
+    accept-charset="UTF-8"
+    novalidate
+    data-form-handle="{{ form.handle }}"
+    data-site="{{ currentSite.handle }}"
+    data-csrf-url="{{ actionUrl('easy-form/forms/get-csrf-token') }}"
+    {% if easyFormDebugEnabled() %}data-ef-log-url="{{ actionUrl('easy-form/forms/log-client-error') }}"{% endif %}
+    {% if captchaUsable %}data-ef-captcha="{{ form.captchaProvider }}" data-ef-captcha-sitekey="{{ captcha.getSiteKey() }}"{% endif %}
+    {% if isMultiPage %}data-multi-page="true" data-total-pages="{{ pages|length }}"{% endif %}
+    {% if isMultiPage and not form.validateSteps %}data-validate-steps="false"{% endif %}
+    {% if form.allowUrlPrefill %}data-url-prefill="true"{% endif %}
+    {% if options.disableFrontendValidation|default(false) %}data-disable-frontend-validation="true"{% endif %}
+>
+    {{ actionInput('easy-form/submissions/submit') }}
+    {{ hiddenInput('formId', form.id) }}
+    {{ hiddenInput('siteId', currentSite.id) }}
+    
+    {# Honeypot field (always enabled). Hardened against browser autofill /
+       password managers: a label or recognizable field cues them to fill it
+       even though the user can't see it, which would silently flag a genuine
+       submission as spam. So: no <label>, aria-hidden, autocomplete off, and
+       the documented per-manager opt-out attributes. Bots that blindly fill
+       every input still trip it. #}
+    <div aria-hidden="true" style="position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden;">
+        <input type="text" id="{{ formId }}-honeypot" name="honeypot" value="" tabindex="-1"
+            autocomplete="off" aria-hidden="true" readonly
+            data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
+    </div>
+    
+    {# Step indicator (multi-page, opt-in) #}
+    {% if isMultiPage and form.showStepIndicator %}
+        <ol class="easy-form-steps" aria-hidden="true">
+            {% for page in pages %}
+                <li class="easy-form-step{% if loop.first %} is-active{% endif %}" data-step="{{ loop.index0 }}">
+                    <span class="easy-form-step-num">{{ loop.index }}</span>
+                    {% if page.label|default('') %}<span class="easy-form-step-label">{{ page.label }}</span>{% endif %}
+                </li>
+            {% endfor %}
+        </ol>
+    {% endif %}
+
+    {# Render pages #}
+    {% for page in pages %}
+        {% set pageIndex = loop.index0 %}
+        {# Per-page Next/Previous button labels, resolved for the current site:
+           per-site override → page default → the generic "Next"/"Previous".
+           The JS swaps the shared nav buttons' text from these as pages change. #}
+        {% set pageNextLabel = ((page.siteNextLabels[currentSite.handle] ?? '')|trim)
+            ?: ((page.nextLabel ?? '')|trim)
+            ?: 'Next'|t('easy-form') %}
+        {% set pagePrevLabel = ((page.sitePrevLabels[currentSite.handle] ?? '')|trim)
+            ?: ((page.prevLabel ?? '')|trim)
+            ?: 'Previous'|t('easy-form') %}
+        <div
+            class="easy-form-page{% if not loop.first and isMultiPage %} easy-form-page-hidden{% endif %}"
+            data-page="{{ loop.index }}"
+            data-page-id="{{ page.id|default('page_' ~ loop.index) }}"
+            data-next-label="{{ pageNextLabel }}"
+            data-prev-label="{{ pagePrevLabel }}"
+            {% if page.conditions is defined and page.conditions.rules|default([])|length > 0 %}
+                data-conditions="{{ page.conditions|json_encode }}"
+            {% endif %}
+        >
+            {% if isMultiPage and page.label|default('') %}
+                <div class="easy-form-page-label">{{ page.label }}</div>
+            {% endif %}
+
+            {# Render rows within this page #}
+            {% for row in page.rows|default([]) %}
+                {# Per-site structural localization: skip rows disabled on the current
+                   site, and rows left empty because every field is disabled here. #}
+                {% set rowSiteEnabled = row.siteEnabled[currentSite.handle] ?? true %}
+                {% set rowHasSiteField = false %}
+                {% for rowField in row.fields|default([]) %}
+                    {% if (rowField.siteEnabled[currentSite.handle] ?? true) %}{% set rowHasSiteField = true %}{% endif %}
+                {% endfor %}
+                {% if rowSiteEnabled and rowHasSiteField %}
+                {% set rowClasses = ['easy-form-row'] %}
+                {% if row.classList|default('') %}
+                    {% set rowClasses = rowClasses|merge(row.classList|split(' ')) %}
+                {% endif %}
+                
+                <div
+                    class="{{ rowClasses|join(' ') }}"
+                    {% if row.rowId|default('') %}id="{{ row.rowId }}"{% endif %}
+                    {% if row.conditions is defined and row.conditions.rules|default([])|length > 0 %}
+                        data-conditions="{{ row.conditions|json_encode }}"
+                    {% endif %}
+                >
+                    {% set fields = row.fields|default([]) %}
+                    {% for field in fields %}
+                        {% include 'easy-form/forms/_field.twig' %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endfor %}
+    
+    {# CAPTCHA widget #}
+    {% if captchaUsable %}
+        <div class="easy-form-captcha"{% if isMultiPage %} data-captcha-last-page="true"{% endif %}>
+            {{ captcha.renderWidget(formId)|raw }}
+        </div>
+    {% endif %}
+
+    {# Navigation + Submit #}
+    {# Initial nav labels come from the first page; the JS keeps them in sync as
+       pages change. An explicit prev/nextButtonText option still overrides. #}
+    {% set firstPage = pages|first %}
+    {% set firstNextLabel = ((firstPage.siteNextLabels[currentSite.handle] ?? '')|trim)
+        ?: ((firstPage.nextLabel ?? '')|trim)
+        ?: 'Next'|t('easy-form') %}
+    {% set firstPrevLabel = ((firstPage.sitePrevLabels[currentSite.handle] ?? '')|trim)
+        ?: ((firstPage.prevLabel ?? '')|trim)
+        ?: 'Previous'|t('easy-form') %}
+    <div class="easy-form-actions">
+        {% if isMultiPage %}
+            <button type="button" class="btn easy-form-prev" style="display: none;">
+                {{ options.prevButtonText|default(firstPrevLabel) }}
+            </button>
+            <button type="button" class="btn easy-form-next">
+                {{ options.nextButtonText|default(firstNextLabel) }}
+            </button>
+        {% endif %}
+        <button type="submit" class="{{ options.submitButtonClass }}"{% if isMultiPage %} style="display: none;"{% endif %}>
+            {{ options.submitButtonText }}
+        </button>
+    </div>
+</form>

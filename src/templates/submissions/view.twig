@@ -1,0 +1,410 @@
+{% extends '_layouts/cp' %}
+{% import _self as helper %}
+
+{% set title = 'Submission #' ~ submission.id %}
+{% set selectedSubnavItem = 'submissions' %}
+{% set crumbs = [{ label: 'Submissions'|t('easy-form'), url: url('easy-form/submissions') }] %}
+
+{% set fmt = craft.app.formatter %}
+{% set statusMeta = {
+    pending:  { label: 'Pending'|t('easy-form'),  class: 'pending' },
+    approved: { label: 'Approved'|t('easy-form'), class: 'approved' },
+    spam:     { label: 'Spam'|t('easy-form'),     class: 'spam' },
+    archived: { label: 'Archived'|t('easy-form'), class: 'archived' },
+} %}
+{% set curStatus = statusMeta[submission.status] ?? { label: submission.status|capitalize, class: 'archived' } %}
+
+{# Build field metadata (label + type) from the stored snapshot (survives form
+   changes/deletion); fall back to the live form. Option labels come from the
+   live form when available. #}
+{% set snap = submission.getFieldSnapshotArray() %}
+{% set snapFields = snap.fields ?? [] %}
+{% set flatValues = submission.getFlatValues() %}
+{# Presentational fields carry no value; skip them so they aren't empty rows
+   (older snapshots may still list them). #}
+{% set presentationalTypes = easyFormPresentationalTypes() %}
+{% set fieldMeta = {} %}
+{% for f in snapFields|filter(f => (f.type ?? 'text') not in presentationalTypes) %}{% set fieldMeta = fieldMeta|merge({ (f.handle): { label: f.label ?? f.handle, type: f.type ?? 'text' } }) %}{% endfor %}
+{% if fieldMeta is empty and form %}
+    {% for f in form.getFields()|filter(f => (f.type ?? 'text') not in presentationalTypes) %}{% set fieldMeta = fieldMeta|merge({ (f.handle): { label: f.label ?? f.handle, type: f.type ?? 'text' } }) %}{% endfor %}
+{% endif %}
+{% set optionsByHandle = {} %}
+{% if form %}{% for f in form.getFields() %}{% if f.options is defined and f.options %}{% set optionsByHandle = optionsByHandle|merge({ (f.handle): f.options }) %}{% endif %}{% endfor %}{% endif %}
+{% set orderedHandles = fieldMeta|keys %}
+{% for handle in flatValues|keys %}{% if handle not in orderedHandles %}{% set orderedHandles = orderedHandles|merge([handle]) %}{% endif %}{% endfor %}
+
+{# ── Macro: resolve an option value to its display label ───────── #}
+{% macro optionLabel(value, options) %}
+{%- set out = value -%}
+{%- if options is iterable and options is not string -%}
+    {%- for o in options -%}{%- if (o.value ?? o) == value -%}{%- set out = o.label ?? value -%}{%- endif -%}{%- endfor -%}
+{%- elseif options -%}
+    {%- for line in options|split('\n') -%}
+        {%- set esc = line|trim|replace({'\\:': '@@EFCOLON@@'}) -%}
+        {%- set parts = esc|split(':') -%}
+        {%- if (parts[0]|trim|replace({'@@EFCOLON@@': ':'})) == value and parts|length > 1 -%}{%- set out = parts|slice(1)|join(':')|trim|replace({'@@EFCOLON@@': ':'}) -%}{%- endif -%}
+    {%- endfor -%}
+{%- endif -%}
+{{- out -}}
+{% endmacro %}
+
+{% block actionButton %}
+    <span class="ef-pill {{ curStatus.class }}"><i class="ef-dot"></i>{{ curStatus.label }}</span>
+    {% if currentUser.can('easy-form:editSubmissions') %}
+        <a class="btn" href="{{ url('easy-form/submissions/' ~ submission.id ~ '/edit') }}">{{ 'Edit'|t('easy-form') }}</a>
+    {% endif %}
+{% endblock %}
+
+{% block pageTitle %}
+    {{ parent() }}
+    <div class="ef-page-sub">{{ form ? form.name : (submission.formName ?? 'Form'|t('easy-form')) }} · {{ 'received'|t('easy-form') }} {{ submission.dateCreated|date('j M Y, H:i') }}</div>
+{% endblock %}
+
+{% block content %}
+<div class="ef-detail">
+    <div class="ef-detail-grid">
+        {# ── Submitted data ──────────────────────────────────── #}
+        <main class="ef-card ef-data-card">
+            <div class="ef-card-head">
+                <div>
+                    <h2 class="ef-card-title">{{ 'Submitted data'|t('easy-form') }}</h2>
+                    <p class="ef-card-sub">{{ '{n, plural, =1{1 field} other{# fields}}'|t('easy-form', { n: orderedHandles|length }) }}{% if form %} {{ 'from the “{form}” form'|t('easy-form', { form: form.name }) }}{% endif %}</p>
+                </div>
+                <button type="button" class="btn icon ef-copy-json" id="ef-copy-json" data-icon="clipboard">{{ 'Copy JSON'|t('easy-form') }}</button>
+            </div>
+
+            {% if orderedHandles|length %}
+                <div class="ef-fields">
+                    {% for handle in orderedHandles %}
+                        {% set value = flatValues[handle] ?? null %}
+                        {% set meta = fieldMeta[handle] ?? null %}
+                        {% set type = meta.type ?? '' %}
+                        <div class="ef-field">
+                            <div class="ef-field-label">{{ meta.label ?? handle|title }}</div>
+                            <div class="ef-field-value">
+                                {% if type == 'boolean' %}
+                                    {% set yes = value in [true, 1, '1', 'true', 'yes', 'on'] %}
+                                    {% if yes %}<span class="ef-bool yes"><i data-icon="check"></i>{{ 'Yes'|t('easy-form') }}</span>
+                                    {% else %}<span class="ef-bool no">{{ 'No'|t('easy-form') }}</span>{% endif %}
+                                {% elseif type == 'agree' %}
+                                    {% if value is not empty %}<span class="ef-tag">{{ value }}</span>{% else %}<span class="ef-empty-val">{{ '—'|t('easy-form') }}</span>{% endif %}
+                                {% elseif value is empty and value != '0' and value != 0 %}
+                                    <span class="ef-empty-val">{{ '—'|t('easy-form') }}</span>
+                                {% elseif type == 'email' %}
+                                    <a href="mailto:{{ value }}" class="ef-val-link ef-mono">{{ value }}</a>
+                                {% elseif type == 'url' %}
+                                    <a href="{{ value }}" target="_blank" rel="noopener" class="ef-val-link">{{ value }}</a>
+                                {% elseif type == 'file' %}
+                                    {% if value.storage is defined and value.storage == 'filesystem' %}
+                                        {% for f in value.files ?? [] %}
+                                            {{ helper.fileCard(f.url, f.filename, f.size ?? null) }}
+                                        {% endfor %}
+                                    {% else %}
+                                        {% set ids = value is iterable and value is not string ? value : [value] %}
+                                        {% set assets = craft.assets.id(ids).all() %}
+                                        {% for asset in assets %}
+                                            {{ helper.fileCard(asset.url ?? asset.cpEditUrl, asset.filename, asset.size, asset.cpEditUrl) }}
+                                        {% else %}
+                                            {{ ids|join(', ') }}
+                                        {% endfor %}
+                                    {% endif %}
+                                {% elseif type == 'select' %}
+                                    <span class="ef-tag">{{ helper.optionLabel(value, optionsByHandle[handle] ?? null) }}</span>
+                                {% elseif type == 'checkboxes' or (value is iterable and value is not string) %}
+                                    {% set items = value is iterable and value is not string ? value : [value] %}
+                                    <span class="ef-tags">{% for it in items %}<span class="ef-tag">{{ it is iterable ? it|json_encode : helper.optionLabel(it, optionsByHandle[handle] ?? null) }}</span>{% endfor %}</span>
+                                {% elseif type == 'textarea' %}
+                                    <div class="ef-multiline">{{ value|nl2br }}</div>
+                                {% else %}
+                                    {{ value }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="ef-empty-val" style="padding:16px 0;">{{ 'No data submitted.'|t('easy-form') }}</p>
+            {% endif %}
+        </main>
+
+        {# ── Sidebar ─────────────────────────────────────────── #}
+        <aside class="ef-detail-side">
+            <div class="ef-card ef-side-card">
+                <h3 class="ef-side-title">{{ 'Actions'|t('easy-form') }}</h3>
+                <div class="ef-actions">
+                    <button type="button" class="btn ef-action ef-action-primary" data-status="approved"><i class="ef-dot"></i>{{ 'Approve'|t('easy-form') }}</button>
+                    <button type="button" class="btn ef-action" data-status="spam"><i class="ef-dot spam"></i>{{ 'Mark as spam'|t('easy-form') }}</button>
+                    <button type="button" class="btn ef-action" data-status="archived">{{ 'Archive'|t('easy-form') }}</button>
+                    <button type="button" class="btn ef-action" data-status="pending">{{ 'Reset to pending'|t('easy-form') }}</button>
+
+                    {% if form and form.notificationSettingsArray %}
+                        <button type="button" class="btn ef-action" id="ef-resend" data-icon="mail">{{ 'Resend notification…'|t('easy-form') }}</button>
+                    {% endif %}
+
+                    <div class="ef-action-divider"></div>
+                    <button type="button" class="btn ef-action ef-action-danger" id="ef-delete" data-icon="trash">{{ 'Delete submission'|t('easy-form') }}</button>
+                </div>
+            </div>
+
+            <div class="ef-card ef-side-card">
+                <h3 class="ef-side-title">{{ 'Details'|t('easy-form') }}</h3>
+                <dl class="ef-meta">
+                    <dt>{{ 'Form'|t('easy-form') }}</dt>
+                    <dd>
+                        {% if form %}<a href="{{ url('easy-form/forms/' ~ form.id) }}" class="ef-val-link">{{ form.name }}</a>
+                        {% else %}{{ submission.formName ?? 'Form'|t('easy-form') }} <span class="ef-muted">({{ 'deleted'|t('easy-form') }})</span>{% endif %}
+                    </dd>
+
+                    <dt>{{ 'Submitted'|t('easy-form') }}</dt>
+                    <dd>{{ submission.dateCreated|date('j M Y, H:i:s') }} {{ submission.dateCreated|date('\\G\\M\\TP') }}</dd>
+
+                    {% if submission.siteId %}
+                        {% set site = craft.app.sites.getSiteById(submission.siteId) %}
+                        <dt>{{ 'Site'|t('easy-form') }}</dt>
+                        <dd>{{ site ? site.name : 'Site #' ~ submission.siteId }}</dd>
+                    {% endif %}
+
+                    {% if submission.ipAddress %}
+                        <dt>{{ 'IP address'|t('easy-form') }}</dt>
+                        <dd><code class="ef-chip">{{ submission.ipAddress }}</code></dd>
+                    {% endif %}
+
+                    <dt>{{ 'Submitter'|t('easy-form') }}</dt>
+                    <dd>
+                        {% if submission.userId %}
+                            {% set user = craft.users.id(submission.userId).one() %}
+                            {% if user %}<a href="{{ user.cpEditUrl }}" class="ef-val-link">{{ user.name ?? user.username }}</a>{% else %}{{ 'User #' ~ submission.userId }}{% endif %}
+                        {% else %}<span class="ef-muted">{{ 'Guest'|t('easy-form') }}</span>{% endif %}
+                    </dd>
+
+                    {% if submission.userAgent %}
+                        <dt>{{ 'User agent'|t('easy-form') }}</dt>
+                        <dd class="ef-ua">{{ submission.userAgent }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </aside>
+    </div>
+</div>
+
+{% if form and form.notificationSettingsArray %}
+    <div id="ef-notif-overlay" class="ef-modal-overlay">
+        <div class="ef-modal">
+            <h2>{{ 'Resend notification'|t('easy-form') }}</h2>
+            <form id="ef-notif-form">
+                <div class="field">
+                    <div class="heading"><label for="ef-notif-index">{{ 'Notification'|t('easy-form') }}</label></div>
+                    <div class="input"><div class="select fullwidth">
+                        <select id="ef-notif-index" name="notificationIndex" class="fullwidth">
+                            {% for notif in form.notificationSettingsArray %}
+                                <option value="{{ loop.index0 }}">{{ notif.name ?? notif.subject ?? 'Notification ' ~ loop.index }}</option>
+                            {% endfor %}
+                        </select>
+                    </div></div>
+                </div>
+                <div class="field">
+                    <div class="heading"><label for="ef-notif-to">{{ 'Recipient override'|t('easy-form') }}</label></div>
+                    <div class="instructions"><p>{{ 'Leave empty to use the configured recipients.'|t('easy-form') }}</p></div>
+                    <div class="input"><input type="text" id="ef-notif-to" name="recipientOverride" class="text fullwidth" placeholder="email@example.com"></div>
+                </div>
+                <div class="buttons right">
+                    <button type="button" class="btn" id="ef-notif-cancel">{{ 'Cancel'|t('app') }}</button>
+                    <button type="submit" class="btn submit">{{ 'Send'|t('app') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endif %}
+
+{% js %}
+(function () {
+    var ID = {{ submission.id }};
+    var LIST = '{{ url('easy-form/submissions')|e('js') }}';
+    var JSON_DATA = {{ flatValues|json_encode|raw }};
+
+    function err(m) { Craft.cp.displayError(m || Craft.t('easy-form', 'Something went wrong.')); }
+
+    // Status actions
+    document.querySelectorAll('[data-status]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            Craft.sendActionRequest('POST', 'easy-form/submissions/update-status', { data: { id: ID, status: btn.dataset.status } })
+                .then(function (r) {
+                    if (r.data.success) { Craft.cp.displayNotice(Craft.t('easy-form', 'Status updated.')); location.reload(); }
+                    else { err(r.data.error); }
+                }).catch(function () { err(); });
+        });
+    });
+
+    // Delete
+    var del = document.getElementById('ef-delete');
+    if (del) del.addEventListener('click', function () {
+        if (!confirm(Craft.t('easy-form', 'Delete this submission? This cannot be undone.'))) return;
+        Craft.sendActionRequest('POST', 'easy-form/submissions/delete', { data: { id: ID } })
+            .then(function (r) {
+                if (r.data.success) { Craft.cp.displayNotice(Craft.t('easy-form', 'Submission deleted.')); window.location.href = LIST; }
+                else { err(r.data.error); }
+            }).catch(function () { err(); });
+    });
+
+    // Copy JSON
+    var copy = document.getElementById('ef-copy-json');
+    if (copy) copy.addEventListener('click', function () {
+        var text = JSON.stringify(JSON_DATA, null, 2);
+        navigator.clipboard.writeText(text)
+            .then(function () { Craft.cp.displayNotice(Craft.t('easy-form', 'Copied JSON to clipboard.')); })
+            .catch(function () { err(Craft.t('easy-form', 'Could not copy.')); });
+    });
+
+    // Resend-notification modal
+    var overlay = document.getElementById('ef-notif-overlay');
+    var resend = document.getElementById('ef-resend');
+    if (overlay && resend) {
+        function close() { overlay.classList.remove('active'); }
+        resend.addEventListener('click', function () { overlay.classList.add('active'); });
+        document.getElementById('ef-notif-cancel').addEventListener('click', close);
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+        document.getElementById('ef-notif-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            Craft.sendActionRequest('POST', 'easy-form/submissions/send-notification', {
+                data: {
+                    submissionId: ID,
+                    notificationIndex: document.getElementById('ef-notif-index').value,
+                    recipientOverride: document.getElementById('ef-notif-to').value
+                }
+            }).then(function (r) {
+                if (r.data.success) { Craft.cp.displayNotice(r.data.message || Craft.t('easy-form', 'Notification queued.')); close(); }
+                else { err(r.data.error); }
+            }).catch(function () { err(); });
+        });
+    }
+})();
+{% endjs %}
+
+{% css %}
+/* ── Full-bleed: let the CP's light canvas show behind our cards ── */
+#content.content-pane:has(.ef-detail) { background: transparent; box-shadow: none; padding: 0; border: 0; border-radius: 0; }
+.ef-detail .ef-card { box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 6px 16px rgba(16,24,40,.05); }
+
+/* ── Page subtitle (under the main title) ──────────────────── */
+.ef-page-sub { margin-top: 5px; color: var(--medium-text-color, #5a6573); font-size: 14px; font-weight: 400; }
+
+/* ── Layout ────────────────────────────────────────────────── */
+.ef-detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .ef-detail-grid { grid-template-columns: 1fr; } }
+
+.ef-card {
+    background: var(--white, #fff);
+    border: 1px solid var(--hairline-color, #e3e8ef);
+    border-radius: 16px;
+}
+.ef-data-card { padding: 0; }
+
+/* Full-width dividers: content is padded, the rules span edge to edge. */
+.ef-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 22px 15px; border-bottom: 1px solid var(--hairline-color, #eef1f6); }
+.ef-card-title { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-color, #1d2530); }
+.ef-card-sub { margin: 3px 0 0; color: var(--light-text-color, #8893a2); font-size: 13px; }
+.ef-data-card .ef-copy-json { white-space: nowrap; background: var(--white, #fff); border: 1px solid var(--hairline-color, #e3e8ef); color: var(--text-color, #1d2530); box-shadow: none; font-weight: 500; }
+.ef-data-card .ef-copy-json:hover { background: var(--gray-050, #f4f6f9); }
+
+/* ── Field rows ────────────────────────────────────────────── */
+.ef-field { display: grid; grid-template-columns: 180px 1fr; gap: 20px; padding: 15px 22px; border-top: 1px solid var(--hairline-color, #eef1f6); }
+.ef-field:first-child { border-top: 0; }
+.ef-field-label { color: var(--text-color, #1d2530); font-size: 13.5px; font-weight: 600; }
+.ef-field-value { color: var(--text-color, #1d2530); font-size: 14px; min-width: 0; word-break: break-word; }
+.ef-multiline { white-space: pre-line; line-height: 1.55; }
+.ef-mono { font-family: var(--monospace-font, ui-monospace, monospace); font-size: 13px; }
+.ef-val-link { color: var(--ef-blue, #2160e6); }
+.ef-val-link:hover { color: var(--ef-blue-dark, #1b4fc0); text-decoration: underline; }
+.ef-empty-val, .ef-muted { color: var(--light-text-color, #8893a2); }
+
+.ef-tag { display: inline-block; padding: 3px 10px; margin: 0 4px 4px 0; border-radius: 6px; background: var(--gray-100, #eef1f6); color: var(--medium-text-color, #5a6573); font-size: 12.5px; }
+.ef-bool { display: inline-flex; align-items: center; gap: 5px; font-weight: 500; }
+.ef-bool.yes { color: #147a4b; }
+.ef-bool.no { color: var(--medium-text-color, #5a6573); }
+
+/* File card */
+.ef-file {
+    display: inline-flex; align-items: center; gap: 11px;
+    padding: 9px 12px; margin: 2px 0;
+    border: 1px solid var(--hairline-color, #e3e8ef); border-radius: 12px;
+    background: var(--gray-050, #f8fafc); color: var(--text-color, #1d2530);
+}
+.ef-file:hover { border-color: var(--ef-blue, #2160e6); }
+.ef-file-icon { color: var(--light-text-color, #8893a2); font-size: 16px; }
+.ef-file-meta { display: flex; flex-direction: column; line-height: 1.3; }
+.ef-file-name { font-weight: 500; }
+.ef-file-sub { color: var(--light-text-color, #8893a2); font-size: 12px; }
+.ef-file-dl { margin-left: 6px; color: var(--light-text-color, #8893a2); }
+.ef-file-wrap { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 2px 0; }
+.ef-file-asset-link {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; color: var(--ef-blue, #2160e6); text-decoration: none;
+}
+.ef-file-asset-link:hover { text-decoration: underline; }
+
+/* ── Sidebar ───────────────────────────────────────────────── */
+.ef-detail-side { display: flex; flex-direction: column; gap: 16px; }
+.ef-side-card { padding: 16px; }
+.ef-side-title { margin: 0 0 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--light-text-color, #8893a2); }
+
+.ef-actions { display: flex; flex-direction: column; gap: 7px; }
+/* Light/white buttons by default; Approve is the only filled (blue) one. */
+.ef-actions .ef-action {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    width: 100%; height: 33px; padding: 0 12px;
+    background: var(--white, #fff); border: 1px solid var(--hairline-color, #e3e8ef);
+    border-radius: 9px; color: var(--text-color, #1d2530);
+    font-size: 13px; font-weight: 500; box-shadow: none;
+}
+.ef-actions .ef-action:hover { background: var(--gray-050, #f4f6f9); }
+.ef-actions .ef-action-primary, .ef-actions .ef-action-primary:hover { background: var(--ef-blue, #2160e6); border-color: var(--ef-blue, #2160e6); color: #fff; }
+.ef-actions .ef-action-primary:hover { background: var(--ef-blue-dark, #1b4fc0); border-color: var(--ef-blue-dark, #1b4fc0); }
+.ef-action-primary .ef-dot { background: rgba(255,255,255,.9); }
+.ef-actions .ef-action-danger { color: #b32328; }
+.ef-actions .ef-action-danger:hover { background: #fdeaea; border-color: #f4c4c6; color: #b32328; }
+.ef-action-divider { height: 1px; background: var(--hairline-color, #e3e8ef); margin: 5px 0; }
+
+.ef-meta { margin: 0; display: block; }
+.ef-meta dt { margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--hairline-color, #eef1f6); font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--light-text-color, #8893a2); }
+.ef-meta dt:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.ef-meta dd { margin: 5px 0 0; font-size: 13.5px; color: var(--text-color, #1d2530); word-break: break-word; }
+.ef-chip { display: inline-block; padding: 2px 7px; border-radius: 5px; background: var(--gray-100, #eef1f6); font-family: var(--monospace-font, ui-monospace, monospace); font-size: 12px; }
+.ef-ua { color: var(--medium-text-color, #5a6573); font-size: 12.5px; line-height: 1.5; }
+
+/* ── Status pill (shared with the list page) ───────────────── */
+.ef-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 500; border: 1px solid color-mix(in srgb, currentColor 24%, transparent); }
+.ef-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+.ef-pill.approved { background: #e3f3ea; color: #147a4b; } .ef-pill.approved .ef-dot, .ef-dot.approved { background: #1aa85f; }
+.ef-pill.pending  { background: #fdf3e2; color: #9a5d05; } .ef-pill.pending .ef-dot { background: #e0a23c; }
+.ef-pill.spam     { background: #fdeaea; color: #b32328; } .ef-dot.spam { background: #d23b3b; }
+.ef-pill.spam .ef-dot { background: #d23b3b; }
+.ef-pill.archived { background: var(--gray-100, #eef1f6); color: var(--medium-text-color, #5a6573); } .ef-pill.archived .ef-dot { background: #9aa4b2; }
+
+/* ── Modal ─────────────────────────────────────────────────── */
+.ef-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,22,32,.45); z-index: 100; align-items: center; justify-content: center; }
+.ef-modal-overlay.active { display: flex; }
+.ef-modal { width: 460px; max-width: calc(100vw - 40px); background: var(--white, #fff); border-radius: 16px; padding: 22px; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+.ef-modal h2 { margin: 0 0 16px; }
+.ef-modal .buttons.right { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+{% endcss %}
+{% endblock %}
+
+{# ── File-card macro ───────────────────────────────────────── #}
+{% macro fileCard(url, name, size, cpUrl) %}
+    {% set ext = name|split('.')|last|upper %}
+    <div class="ef-file-wrap">
+        <a class="ef-file" href="{{ url }}" target="_blank" rel="noopener">
+            <span class="ef-file-icon" data-icon="file"></span>
+            <span class="ef-file-meta">
+                <span class="ef-file-name">{{ name }}</span>
+                <span class="ef-file-sub">{% if size %}{{ size|filesize }}{% if ext %} · {% endif %}{% endif %}{{ ext }}</span>
+            </span>
+            <span class="ef-file-dl" data-icon="download"></span>
+        </a>
+        {% if cpUrl %}
+            <a class="ef-file-asset-link" href="{{ cpUrl }}">
+                <span data-icon="asset"></span>{{ 'Open asset'|t('easy-form') }}
+            </a>
+        {% endif %}
+    </div>
+{% endmacro %}

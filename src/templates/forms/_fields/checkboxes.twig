@@ -1,0 +1,70 @@
+{% set optionsArray = [] %}
+{% set markedDefaults = [] %}
+{% set siteOptions = field.siteOptions ?? [] %}
+{% set primaryHandle = craft.app.sites.getPrimarySite().handle %}
+{# Prefer this site's options, then the primary site's, then the base options.
+   The builder keeps the primary list in siteOptions[primary], so an untranslated
+   secondary site falls back to it instead of rendering an empty control. #}
+{% set optionsSource = siteOptions[currentSite.handle]|default('')|trim
+    ?: (siteOptions[primaryHandle]|default('')|trim
+    ?: field.options|default('')) %}
+
+{% if optionsSource %}
+    {% for rawLine in optionsSource|split('\n') %}
+        {% set line = rawLine|trim %}
+        {% if line %}
+            {# A leading "*" marks the option as checked by default; "\*" is a
+               literal asterisk at the start of a value. #}
+            {% set isDefault = false %}
+            {% if line starts with '*' %}
+                {% set isDefault = true %}
+                {% set line = line|slice(1)|trim %}
+            {% elseif line starts with '\\*' %}
+                {% set line = line|slice(1) %}
+            {% endif %}
+            {# "\:" is a literal colon in the value/label — protect it before the split. #}
+            {% set esc = line|replace({'\\:': '@@EFCOLON@@'}) %}
+            {% if ':' in esc %}
+                {% set parts = esc|split(':', 2) %}
+                {% set optValue = parts[0]|trim|replace({'@@EFCOLON@@': ':'}) %}
+                {% set optionsArray = optionsArray|merge([{ value: optValue, label: parts[1]|trim|replace({'@@EFCOLON@@': ':'}) }]) %}
+            {% else %}
+                {% set optValue = esc|trim|replace({'@@EFCOLON@@': ':'}) %}
+                {% set optionsArray = optionsArray|merge([{ value: optValue, label: optValue }]) %}
+            {% endif %}
+            {% if isDefault %}{% set markedDefaults = markedDefaults|merge([optValue]) %}{% endif %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+{% set isMultiple = field.multiple is defined ? field.multiple : true %}
+{% set inputType = isMultiple ? 'checkbox' : 'radio' %}
+{% set inputName = 'fields[' ~ field.handle ~ ']' ~ (isMultiple ? '[]' : '') %}
+
+{# Checked-state precedence: a render-time override —
+   easyForm('x', { values: { handle: [...] } }) — beats the "*"-marked default
+   option(s), which beat the legacy free-text default value. Accepts a single
+   value or an array of values. #}
+{% set efSelected = options.values[field.handle]
+    ?? (markedDefaults is not empty
+        ? markedDefaults
+        : field.siteDefaultValues[currentSite.handle]|default(field.defaultValue|default(null))) %}
+
+<div class="checkbox-group" role="group" data-field-type="checkboxes"{% if fieldHelp|default('') %} aria-describedby="{{ fieldInputId }}-help"{% endif %}>
+    {% for option in optionsArray %}
+        <label class="checkbox-option">
+            <input
+                type="{{ inputType }}"
+                name="{{ inputName }}"
+                value="{{ option.value }}"
+                {% if efSelected is not null and (efSelected is iterable ? option.value in efSelected : option.value == efSelected) %}checked{% endif %}
+                {% if field.required|default(false) and loop.first %}
+                    required
+                    data-field-type="checkboxes"
+                    {% if field.siteRequiredMessages[currentSite.handle] ?? null %}data-required-message="{{ field.siteRequiredMessages[currentSite.handle] }}"{% endif %}
+                {% endif %}
+            >
+            <span>{{ option.label }}</span>
+        </label>
+    {% endfor %}
+</div>

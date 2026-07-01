@@ -1,0 +1,120 @@
+{#
+    Renders ONE Easy Form field: the wrapper, label, help text and the
+    type-specific input partial — exactly as it appears inside a full form.
+
+    Extracted from _render.twig so that in-form rendering and the standalone
+    `easyFormField()` Twig function share a single source of truth; anything
+    that changes here changes both at once.
+
+    Variables:
+    - field:   the field to render. A Form model's field, or a plain hash with
+               at least `type` and `handle` (e.g. easyFormField({ type: 'text',
+               handle: 'foo', label: 'Foo', required: true })).
+    - formId:  id prefix for the <input> id and its <label for> association.
+               Defaults to 'easy-form' so a standalone field still gets a
+               stable id ("easy-form-<handle>").
+    - options: render options; only `options.values` (per-handle value
+               overrides) is read by the input partials.
+
+    Relies on the `currentSite` global and the easyFormPresentationalTypes()
+    function, both always available in templates.
+#}
+{% set formId = formId|default('easy-form') %}
+{% set options = options|default({}) %}
+
+{% if not (field.siteEnabled[currentSite.handle] ?? true) %}
+    {# Per-site structural localization: field disabled on the current site renders nothing. #}
+{% elseif field.type in easyFormPresentationalTypes() %}
+    {# Presentational (render-only) field — no label, input or value. #}
+    {% set presLabels = field.siteLabels ?? [] %}
+    {# `|default` (not `??`) so a blank secondary-site override falls back to the primary value. #}
+    {% set presText = presLabels[currentSite.handle]|default(field.label) %}
+    {% set presClasses = ['easy-form-field', 'easy-form-presentational', 'easy-form-presentational-' ~ field.type] %}
+    {% if field.classList|default('') %}
+        {% set presClasses = presClasses|merge(field.classList|split(' ')) %}
+    {% endif %}
+    <div
+        class="{{ presClasses|join(' ') }}"
+        {% if field.fieldId|default('') %}id="{{ field.fieldId }}"{% endif %}
+        data-field-handle="{{ field.handle }}"
+        {% if field.conditions is defined and field.conditions.rules|default([])|length > 0 %}
+            data-conditions="{{ field.conditions|json_encode }}"
+        {% endif %}
+    >
+        {% if field.type == 'heading' %}
+            {% set lvl = field.headingLevel|default('h3') in ['h2', 'h3', 'h4'] ? field.headingLevel : 'h3' %}
+            <{{ lvl }} class="easy-form-heading">{{ presText }}</{{ lvl }}>
+        {% elseif field.type == 'divider' %}
+            <hr class="easy-form-divider">
+        {% elseif field.type == 'paragraph' %}
+            {% set siteContent = field.siteContent ?? [] %}
+            {% set presContent = siteContent[currentSite.handle]|default(field.content|default(presText)) %}
+            <p class="easy-form-text">{{ presContent|nl2br }}</p>
+        {% elseif field.type == 'callout' %}
+            {% set calloutStyle = field.calloutStyle|default('info') in ['info', 'warning', 'success', 'error'] ? field.calloutStyle : 'info' %}
+            {% set calloutColor = field.calloutColor|default('') %}
+            {% set calloutSiteContent = field.siteContent ?? [] %}
+            {% set calloutContent = calloutSiteContent[currentSite.handle]|default(field.content|default('') ?: presText) %}
+            <div class="easy-form-callout easy-form-callout-{{ calloutStyle }}"
+                {% if calloutColor matches '/^#[0-9a-fA-F]{3,6}$/' %}style="--easy-form-callout-accent: {{ calloutColor }}"{% endif %}>
+                {{ calloutContent|nl2br }}
+            </div>
+        {% endif %}
+    </div>
+{% else %}
+{% set fieldClasses = ['easy-form-field', 'easy-form-field-' ~ field.type] %}
+{% if field.classList|default('') %}
+    {% set fieldClasses = fieldClasses|merge(field.classList|split(' ')) %}
+{% endif %}
+
+{# Match the id the field partials generate so the <label for> is associated. #}
+{% set fieldInputId = field.fieldId|default('') ?: (formId ~ '-' ~ field.handle) %}
+{# `|default` (not `??`) so a blank secondary-site override falls back to the primary value. #}
+{% set siteLabels = field.siteLabels ?? [] %}
+{% set fieldLabel = siteLabels[currentSite.handle]|default(field.label) %}
+{% set siteHelpTexts = field.siteHelpTexts ?? [] %}
+{% set fieldHelp = siteHelpTexts[currentSite.handle]|default(field.helpText|default('')) %}
+
+<div
+    class="{{ fieldClasses|join(' ') }}"
+    data-field-handle="{{ field.handle }}"
+    {% if field.conditions is defined and field.conditions.rules|default([])|length > 0 %}
+        data-conditions="{{ field.conditions|json_encode }}"
+    {% endif %}
+>
+    {% if field.type not in ['agree', 'hidden'] %}
+        <label for="{{ fieldInputId }}">
+            {{ fieldLabel }}
+            {% if field.required|default(false) %}
+                <span class="required">*</span>
+            {% endif %}
+        </label>
+    {% endif %}
+
+    {% if fieldHelp and field.type != 'hidden' %}
+        <small class="easy-form-field-instructions" id="{{ fieldInputId }}-help">{{ fieldHelp|nl2br }}</small>
+    {% endif %}
+
+    {% if field.type == 'email' %}
+        {% include 'easy-form/forms/_fields/email.twig' %}
+    {% elseif field.type == 'tel' %}
+        {% include 'easy-form/forms/_fields/phone.twig' %}
+    {% elseif field.type == 'textarea' %}
+        {% include 'easy-form/forms/_fields/textarea.twig' %}
+    {% elseif field.type in ['date', 'datetime', 'time'] %}
+        {% include 'easy-form/forms/_fields/date.twig' %}
+    {% elseif field.type == 'hidden' %}
+        {% include 'easy-form/forms/_fields/hidden.twig' %}
+    {% elseif field.type == 'select' %}
+        {% include 'easy-form/forms/_fields/select.twig' %}
+    {% elseif field.type == 'checkboxes' %}
+        {% include 'easy-form/forms/_fields/checkboxes.twig' %}
+    {% elseif field.type == 'file' %}
+        {% include 'easy-form/forms/_fields/file.twig' %}
+    {% elseif field.type == 'agree' %}
+        {% include 'easy-form/forms/_fields/agree.twig' %}
+    {% else %}
+        {% include 'easy-form/forms/_fields/text.twig' %}
+    {% endif %}
+</div>
+{% endif %}

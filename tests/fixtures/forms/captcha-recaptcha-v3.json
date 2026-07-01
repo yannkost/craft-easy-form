@@ -1,0 +1,32 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E CAPTCHA reCAPTCHA v3",
+    "handle": "e2eCaptchaV3",
+    "description": "Form protected by reCAPTCHA v3 (test keys), used by the CAPTCHA e2e suite.",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Contact",
+          "rows": [
+            {
+              "id": "r1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": "recaptchaV3"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Agree Values",
+    "handle": "e2eAgreeValues",
+    "description": "Agree field: per-language default state + checked/unchecked meanings (e2e).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "email", "label": "Email", "handle": "email", "required": true },
+                {
+                  "id": "f2",
+                  "type": "agree",
+                  "label": "Consent",
+                  "handle": "consent",
+                  "required": false,
+                  "agreeText": "I consent",
+                  "siteAgreeDefault": { "default": "1", "french": "0" },
+                  "siteAgreeChecked": { "default": "Ja", "french": "oui" },
+                  "siteAgreeUnchecked": { "default": "Nein", "french": "non" }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email" }
+    },
+    "enabled": true,
+    "captchaProvider": null,
+    "notificationSettings": []
+  }
+}

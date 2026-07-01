@@ -1,0 +1,60 @@
+{#
+    Email Notification Template
+    
+    Available variables:
+    - submission: The Submission model (yannkost\easyform\models\Submission)
+      Properties: id, dateCreated, etc.
+    
+    - form: The Form model (yannkost\easyform\models\Form)
+      Properties: name, handle, etc.
+      Methods: getFields() returns array of field definitions
+    
+    - data: Array of submission data [handle => value]
+#}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: sans-serif; line-height: 1.5; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+        .field-list { list-style: none; padding: 0; }
+        .field-item { margin-bottom: 15px; border-bottom: 1px solid #f5f5f5; padding-bottom: 10px; }
+        .label { font-weight: bold; display: block; margin-bottom: 5px; color: #555; }
+        .value { display: block; }
+        .footer { margin-top: 30px; font-size: 12px; color: #999; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>New Submission: {{ form.name }}</h2>
+            <p>Received on {{ submission.dateCreated|date('F j, Y \\a\\t g:i a') }}</p>
+        </div>
+
+        <ul class="field-list">
+            {% for field in form.getFields() %}
+                {% set value = data[field.handle] ?? null %}
+                {% if value is not empty %}
+                    <li class="field-item">
+                        <span class="label">{{ field.label }}</span>
+                        <span class="value">
+                            {% if value is iterable %}
+                                {{ value|join(', ') }}
+                            {% else %}
+                                {{ value|nl2br }}
+                            {% endif %}
+                        </span>
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+
+        <div class="footer">
+            <p>Sent from {{ systemName }}</p>
+            <p><a href="{{ url('easy-form/submissions/' ~ submission.id) }}">View in Control Panel</a></p>
+        </div>
+    </div>
+</body>
+</html>

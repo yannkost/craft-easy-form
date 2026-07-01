@@ -1,0 +1,66 @@
+{# ─────────────────────────────────────────────────────────────
+   Shared list footer: a "Per page" size selector plus the page
+   links. Included by the submissions, forms and exports lists.
+
+   Expects in context:
+     pages  – yii\data\Pagination
+     limit  – the current page size (falls back to 20)
+
+   The size selector's option values are pre-built URLs that keep the
+   current filters (via queryParams) and reset to page 1, so changing
+   the size never lands you past the new last page.
+   ───────────────────────────────────────────────────────────── #}
+{% set qp = craft.app.request.queryParams %}
+{% set path = craft.app.request.pathInfo %}
+{% set pageSizes = [10, 20, 50, 100, 500] %}
+{% set curLimit = limit ?? 20 %}
+
+<div class="ef-pagefoot">
+    {% if pages is defined and pages.pageCount > 1 %}
+        <nav class="ef-pagination" aria-label="{{ 'Pagination'|t('easy-form') }}">
+            {% if pages.page > 0 %}
+                <a href="{{ url(path, qp|merge({ page: pages.page })) }}" class="ef-page" rel="prev">‹</a>
+            {% endif %}
+            {% for p in 1..pages.pageCount %}
+                {% if p == 1 or p == pages.pageCount or (p >= pages.page and p <= pages.page + 2) %}
+                    <a href="{{ url(path, qp|merge({ page: p })) }}" class="ef-page {{ p == pages.page + 1 ? 'is-active' }}">{{ p }}</a>
+                {% elseif p == 2 or p == pages.pageCount - 1 %}
+                    <span class="ef-page-gap">…</span>
+                {% endif %}
+            {% endfor %}
+            {% if pages.page < pages.pageCount - 1 %}
+                <a href="{{ url(path, qp|merge({ page: pages.page + 2 })) }}" class="ef-page" rel="next">›</a>
+            {% endif %}
+        </nav>
+    {% endif %}
+
+    <label class="ef-perpage">
+        <span class="ef-perpage-label">{{ 'Per page'|t('easy-form') }}</span>
+        <div class="select small">
+            <select class="ef-perpage-select">
+                {% for size in pageSizes %}
+                    <option value="{{ url(path, qp|merge({ limit: size, page: 1 })) }}"{{ size == curLimit ? ' selected' }}>{{ size }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </label>
+</div>
+
+{% js %}
+(function () {
+    document.querySelectorAll('.ef-perpage-select').forEach(function (sel) {
+        sel.addEventListener('change', function () { if (this.value) { window.location.href = this.value; } });
+    });
+})();
+{% endjs %}
+
+{% css %}
+/* Size selector and page links sit together, centered as one group. */
+.ef-pagefoot { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 20px; }
+.ef-perpage { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
+.ef-perpage-label { color: var(--light-text-color, #8893a2); font-size: 13px; }
+.ef-perpage .select.small select { height: 30px; font-size: 13px; }
+/* Reuse the existing .ef-pagination / .ef-page styles from the host
+   template; just drop the standalone top margin now that the footer owns it. */
+.ef-pagefoot .ef-pagination { margin-top: 0; }
+{% endcss %}

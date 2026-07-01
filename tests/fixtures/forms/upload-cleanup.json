@@ -1,0 +1,32 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Upload Cleanup",
+    "handle": "e2eUploadCleanup",
+    "description": "File field + a required text field, to test orphan cleanup on failed validation (e2e).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "t1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "d1", "type": "file", "label": "Document", "handle": "doc", "maxFileSize": 5, "allowedFileTypes": "txt" }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

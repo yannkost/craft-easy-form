@@ -1,0 +1,18 @@
+{# Handles: date, datetime, time #}
+{% set inputTypes = { date: 'date', datetime: 'datetime-local', time: 'time' } %}
+{% set inputType = inputTypes[field.type] ?? 'date' %}
+<input
+    type="{{ inputType }}"
+    id="{{ field.fieldId|default('') ?: formId ~ '-' ~ field.handle }}"
+    name="fields[{{ field.handle }}]"
+    {% if field.required|default(false) %}required{% endif %}
+    {# A render-time value override — easyForm('x', { values: { handle: '…' } }) —
+       wins over the builder default and its per-site variants. #}
+    {% set fieldDefault = options.values[field.handle] ?? field.siteDefaultValues[currentSite.handle]|default(field.defaultValue|default('')) %}
+    {% if fieldDefault is not same as('') %}value="{{ fieldDefault }}"{% endif %}
+    {% if field.min|default('') %}min="{{ field.min }}"{% endif %}
+    {% if field.max|default('') %}max="{{ field.max }}"{% endif %}
+    {% if field.siteRequiredMessages[currentSite.handle] ?? null %}data-required-message="{{ field.siteRequiredMessages[currentSite.handle] }}"{% endif %}
+    {% if fieldHelp|default('') %}aria-describedby="{{ fieldInputId }}-help"{% endif %}
+    data-field-type="{{ field.type }}"
+>

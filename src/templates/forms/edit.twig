@@ -1,0 +1,732 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms' as forms %}
+{% import 'easy-form/forms/_localized.twig' as loc %}
+
+{% do view.registerAssetBundle('yannkost\\easyform\\assets\\FormBuilderAsset') %}
+
+{% set title = isNew ? 'Create a new form'|t('easy-form') : form.name %}
+{% set fullPageForm = true %}
+{% set saveShortcutRedirect = 'easy-form/forms/{id}' %}
+
+{# Own tab bar (rendered in the content), so the tabs sit on the canvas and stay
+   within the main column instead of Craft's full-width #content-header. #}
+{% set efTabs = [
+    { id: 'layout', label: 'Form Layout'|t('easy-form') },
+    { id: 'settings', label: 'Settings'|t('easy-form') },
+    { id: 'data', label: 'Frontend & Data'|t('easy-form') },
+    { id: 'behavior', label: 'Behavior'|t('easy-form') },
+    { id: 'messages', label: 'Messages'|t('easy-form') },
+    { id: 'emailnotifications', label: 'Notifications'|t('easy-form') },
+] %}
+
+{% block content %}
+    <script>
+        window.CraftSites = {{ craft.app.sites.getAllSites()|map(s => {name: s.name, handle: s.handle, primary: s.primary, lang: s.language|slice(0, 2)|upper})|json_encode|raw }};
+        {# Single source of truth for render-only field types (mirrors FormSchemaService::PRESENTATIONAL_TYPES). #}
+        window.EasyForm = window.EasyForm || {};
+        window.EasyForm.presentationalTypes = {{ easyFormPresentationalTypes()|json_encode|raw }};
+    </script>
+    <input type="hidden" name="action" value="easy-form/forms/save">
+    {{ redirectInput('easy-form/forms') }}
+    {% if not isNew %}
+        <input type="hidden" name="formId" value="{{ form.id }}">
+    {% endif %}
+
+    <div class="ef-editor">
+    <nav class="ef-tabnav" role="tablist">
+        {% for tab in efTabs %}
+            <button type="button" class="ef-tabnav-item{% if loop.first %} is-active{% endif %}" role="tab" data-pane="{{ tab.id }}">{{ tab.label }}</button>
+        {% endfor %}
+    </nav>
+
+    <div id="layout">
+        <div class="ef-card ef-card--pad">
+        <h2 class="ef-card-title">{{ 'Form details'|t('easy-form') }}</h2>
+        {{ forms.textField({
+            first: true,
+            label: 'Name'|t('easy-form'),
+            instructions: 'What this form will be called in the control panel.'|t('easy-form'),
+            id: 'name',
+            name: 'name',
+            value: form.name,
+            errors: form.getErrors('name'),
+            autofocus: true,
+            required: true
+        }) }}
+
+        {{ forms.textField({
+            label: 'Handle'|t('easy-form'),
+            instructions: 'How you\'ll refer to this form in the templates.'|t('easy-form'),
+            id: 'handle',
+            name: 'handle',
+            class: 'code',
+            autocorrect: false,
+            autocapitalize: false,
+            value: form.handle,
+            errors: form.getErrors('handle'),
+            required: true
+        }) }}
+
+        {{ forms.textareaField({
+            label: 'Description'|t('easy-form'),
+            instructions: 'Optional description of this form.'|t('easy-form'),
+            id: 'description',
+            name: 'description',
+            value: form.description,
+            errors: form.getErrors('description'),
+            rows: 3
+        }) }}
+        </div>{# /Form details card #}
+
+        <div class="ef-card ef-card--pad">
+        <h2 class="ef-card-title">{{ 'Layout'|t('easy-form') }}</h2>
+        <p class="ef-card-sub">{{ 'Build your form using pages, rows and fields. Each page can contain multiple rows, and each row can contain multiple fields side by side.'|t('easy-form') }}</p>
+
+        {% set existingPages = form.pages|default([]) %}
+
+        {# Page tabs #}
+        <nav class="ef-tabs" id="page-tabs">
+            {% for page in existingPages %}
+                <a class="ef-tab page-tab{% if loop.first %} active{% endif %}" data-tab="{{ loop.index0 }}">{{ page.label|default('Page ' ~ loop.index) }}</a>
+            {% endfor %}
+            <a class="ef-tab ef-tab--add" id="add-page-btn"><span data-icon="plus"></span> {{ 'Add Page'|t('easy-form') }}</a>
+        </nav>
+
+        {# Page panes #}
+        <div id="page-panes">
+            {% for page in existingPages %}
+                {% set pageIndex = loop.index0 %}
+                <div class="page-pane{% if loop.first %} active{% endif %}" data-page-pane="{{ pageIndex }}"{% if not loop.first %} style="display: none;"{% endif %}>
+                    <input type="hidden" name="pages[{{ pageIndex }}][id]" value="{{ page.id|default('page_' ~ loop.index) }}">
+                    
+                    <div class="page-header" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                        {{ forms.textField({
+                            label: 'Page Label'|t('easy-form'),
+                            name: 'pages[' ~ pageIndex ~ '][label]',
+                            value: page.label|default('Page ' ~ loop.index),
+                            class: 'page-label-input',
+                            size: 30
+                        }) }}
+                        {% if existingPages|length > 1 %}
+                            <button type="button" class="btn small remove-page-btn" data-page-index="{{ pageIndex }}">{{ 'Remove Page'|t('easy-form') }}</button>
+                        {% endif %}
+                    </div>
+
+                    {# Inner tabs keep a busy page pane tidy: the layout (Fields),
+                       the per-page button Labels, and per-site availability (Sites).
+                       The Sites tab only appears on multi-site installs. #}
+                    {% set pageSites = craft.app.sites.allSites %}
+                    {% set pageHasSites = pageSites|length > 1 %}
+                    <nav class="ef-tabs ef-page-inner-tabs">
+                        <a class="ef-tab active" data-inner-tab="fields">{{ 'Fields'|t('easy-form') }}</a>
+                        <a class="ef-tab" data-inner-tab="labels">{{ 'Labels'|t('easy-form') }}</a>
+                        {% if pageHasSites %}
+                            <a class="ef-tab" data-inner-tab="sites">{{ 'Sites'|t('easy-form') }}</a>
+                        {% endif %}
+                    </nav>
+
+                    {# ── Fields ── #}
+                    <div class="page-inner-pane active" data-inner-pane="fields">
+                        {# Page-level conditions #}
+                        {% if page.conditions is defined and page.conditions.rules|default([])|length > 0 %}
+                            <input type="hidden" name="pages[{{ pageIndex }}][conditions][action]" value="{{ page.conditions.action|default('show') }}">
+                            <input type="hidden" name="pages[{{ pageIndex }}][conditions][logic]" value="{{ page.conditions.logic|default('all') }}">
+                            {% for rule in page.conditions.rules %}
+                                <input type="hidden" name="pages[{{ pageIndex }}][conditions][rules][{{ loop.index0 }}][field]" value="{{ rule.field }}">
+                                <input type="hidden" name="pages[{{ pageIndex }}][conditions][rules][{{ loop.index0 }}][operator]" value="{{ rule.operator }}">
+                                <input type="hidden" name="pages[{{ pageIndex }}][conditions][rules][{{ loop.index0 }}][value]" value="{{ rule.value }}">
+                            {% endfor %}
+                        {% endif %}
+
+                        <div class="form-rows" data-page-index="{{ pageIndex }}" data-row-count="{{ page.rows|default([])|length }}">
+                            {% for row in page.rows|default([]) %}
+                                {% include 'easy-form/forms/_layout-row' with {
+                                    row: row,
+                                    rowIndex: loop.index0,
+                                    pageIndex: pageIndex
+                                } %}
+                            {% endfor %}
+                        </div>
+
+                        <div class="buttons">
+                            <button type="button" class="btn add-row-btn" data-page-index="{{ pageIndex }}">{{ 'Add Row'|t('easy-form') }}</button>
+                        </div>
+                    </div>
+
+                    {# ── Labels ── per-page Next/Previous button labels (+ per-site). #}
+                    <div class="page-inner-pane" data-inner-pane="labels" style="display: none;">
+                        {{ loc.field({
+                            label: 'Next button label'|t('easy-form'),
+                            instructions: 'Shown on this page\'s "Next" button. Defaults to "Next".'|t('easy-form'),
+                            baseName: 'pages[' ~ pageIndex ~ '][nextLabel]',
+                            baseValue: page.nextLabel|default(''),
+                            mapName: 'pages[' ~ pageIndex ~ '][siteNextLabels]',
+                            mapValues: page.siteNextLabels|default({}),
+                            placeholder: 'Next'|t('easy-form')
+                        }) }}
+                        {{ loc.field({
+                            label: 'Previous button label'|t('easy-form'),
+                            instructions: 'Shown on this page\'s "Previous" button. Defaults to "Previous".'|t('easy-form'),
+                            baseName: 'pages[' ~ pageIndex ~ '][prevLabel]',
+                            baseValue: page.prevLabel|default(''),
+                            mapName: 'pages[' ~ pageIndex ~ '][sitePrevLabels]',
+                            mapValues: page.sitePrevLabels|default({}),
+                            placeholder: 'Previous'|t('easy-form')
+                        }) }}
+                    </div>
+
+                    {# ── Sites ── disable an entire page (wizard step) on a site.
+                       A page off here is dropped from that site's form. #}
+                    {% if pageHasSites %}
+                        {% set primarySite = craft.app.sites.primarySite %}
+                        {% set otherPageSites = pageSites|filter(s => s.id != primarySite.id) %}
+                        <div class="page-inner-pane" data-inner-pane="sites" style="display: none;">
+                            <div class="ef-site-enable">
+                                <div class="field"><div class="heading">
+                                    <label>{{ 'Enabled on these sites'|t('easy-form') }}</label>
+                                    <div class="instructions"><p>{{ "Turn a site off to drop this entire page from that site's form."|t('easy-form') }}</p></div>
+                                </div></div>
+                                {{ forms.lightswitchField({
+                                    label: primarySite.name ~ ' (' ~ primarySite.handle ~ ')',
+                                    name: 'pages[' ~ pageIndex ~ '][siteEnabled][' ~ primarySite.handle ~ ']',
+                                    on: (page.siteEnabled[primarySite.handle] ?? true) ? true : false,
+                                    onValue: '1',
+                                    offValue: '0'
+                                }) }}
+                                {% if otherPageSites|length %}
+                                    {% set siteWord = otherPageSites|length == 1 ? 'site'|t('easy-form') : 'sites'|t('easy-form') %}
+                                    <button type="button" class="ef-localized-toggle" aria-expanded="false"><span class="ef-localized-caret" aria-hidden="true"></span>{{ 'Other sites'|t('easy-form') }} · {{ otherPageSites|length }} {{ siteWord }}</button>
+                                    <div class="ef-localized-others" hidden>
+                                        {% for site in otherPageSites %}
+                                            {{ forms.lightswitchField({
+                                                label: site.name ~ ' (' ~ site.handle ~ ')',
+                                                name: 'pages[' ~ pageIndex ~ '][siteEnabled][' ~ site.handle ~ ']',
+                                                on: (page.siteEnabled[site.handle] ?? true) ? true : false,
+                                                onValue: '1',
+                                                offValue: '0'
+                                            }) }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        </div>{# /Layout card #}
+    </div>
+
+    <div id="settings" class="hidden ef-pane-card">
+
+        {{ forms.lightswitchField({
+            label: 'Enabled'|t('easy-form'),
+            id: 'enabled',
+            name: 'enabled',
+            on: form.enabled
+        }) }}
+
+        <div class="field">
+            <div class="heading">
+                <label>{{ 'Honeypot Protection'|t('easy-form') }}</label>
+                <div class="instructions">
+                    <p>{{ 'A hidden field is always added to catch spam bots.'|t('easy-form') }}</p>
+                </div>
+            </div>
+        </div>
+
+        {{ forms.lightswitchField({
+            label: 'Save Spam Submissions'|t('easy-form'),
+            instructions: 'Save submissions even when the honeypot is filled (spam detected).'|t('easy-form'),
+            id: 'saveSpamSubmissions',
+            name: 'saveSpamSubmissions',
+            on: form.saveSpamSubmissions
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Auto-approve Submissions'|t('easy-form'),
+            instructions: 'Save new (non-spam) submissions as “approved” instead of “pending”. Turn on for forms you don’t moderate. Does not affect notifications.'|t('easy-form'),
+            id: 'autoApprove',
+            name: 'autoApprove',
+            on: form.autoApprove
+        }) }}
+
+        {{ forms.textField({
+            label: 'Max Submissions Per User'|t('easy-form'),
+            instructions: 'Limit the number of submissions per user (leave empty for unlimited).'|t('easy-form'),
+            id: 'maxSubmissionsPerUser',
+            name: 'maxSubmissionsPerUser',
+            type: 'number',
+            value: form.maxSubmissionsPerUser,
+            min: 1
+        }) }}
+
+        {{ forms.textField({
+            label: 'Rate Limit (per IP)'|t('easy-form'),
+            instructions: 'Max submissions allowed from one IP within the window below. 0 disables rate limiting.'|t('easy-form'),
+            id: 'rateLimit',
+            name: 'rateLimit',
+            type: 'number',
+            value: form.rateLimit,
+            min: 0
+        }) }}
+
+        {{ forms.textField({
+            label: 'Rate Limit Window (seconds)'|t('easy-form'),
+            instructions: 'The time window for the rate limit above.'|t('easy-form'),
+            id: 'rateLimitWindow',
+            name: 'rateLimitWindow',
+            type: 'number',
+            value: form.rateLimitWindow,
+            min: 1
+        }) }}
+
+        {% set captchaProviders = easyFormCaptchaProviders() %}
+        {% if captchaProviders|length %}
+            {% set captchaOptions = [{ label: 'None'|t('easy-form'), value: '' }] %}
+            {% for handle, provider in captchaProviders %}
+                {% set captchaOptions = captchaOptions|merge([{ label: provider.displayName(), value: handle }]) %}
+            {% endfor %}
+            {{ forms.selectField({
+                label: 'CAPTCHA'|t('easy-form'),
+                instructions: 'Require a CAPTCHA challenge for this form. Only providers configured in Easy Form settings are listed.'|t('easy-form'),
+                id: 'captchaProvider',
+                name: 'captchaProvider',
+                value: form.captchaProvider,
+                options: captchaOptions
+            }) }}
+        {% else %}
+            <div class="field">
+                <div class="heading"><label>{{ 'CAPTCHA'|t('easy-form') }}</label></div>
+                <div class="instructions"><p>{{ 'No CAPTCHA providers are configured. Add credentials in {link} to enable per-form CAPTCHA.'|t('easy-form', { link: '<a href="' ~ url('easy-form/settings') ~ '">' ~ 'Settings'|t('easy-form') ~ '</a>' })|raw }}</p></div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div id="data" class="hidden ef-pane-card">
+        {{ forms.selectField({
+            label: 'Extra field policy'|t('easy-form'),
+            instructions: 'How to treat submitted fields that are not part of the form builder layout.'|t('easy-form'),
+            id: 'extraFieldPolicy',
+            name: 'extraFieldPolicy',
+            value: form.getExtraFieldPolicy(),
+            options: [
+                { label: 'Strict — only builder fields accepted'|t('easy-form'), value: 'strict' },
+                { label: 'Allow listed — builder fields + declared frontend fields'|t('easy-form'), value: 'allowListed' },
+                { label: 'Open — accept all fields (within safety limits)'|t('easy-form'), value: 'open' },
+            ]
+        }) }}
+
+        <hr>
+
+        <h2>{{ 'Frontend fields'|t('easy-form') }}</h2>
+        <p class="light">{{ 'Declare extra fields your front-end templates may submit (e.g. dynamic entry checkboxes, tracking data). Accepted under the "Allow listed" policy.'|t('easy-form') }}</p>
+
+        <div id="frontend-fields-list">
+            {% for field in form.getFrontendFields() %}
+                {% include 'easy-form/forms/_frontend-field' with { field: field, index: loop.index0 } %}
+            {% endfor %}
+        </div>
+
+        <button type="button" class="btn dashed" id="add-frontend-field-btn" style="width: 100%; margin-top: 15px;"><span class="icon" data-icon="plus"></span> {{ 'Add Frontend Field'|t('easy-form') }}</button>
+
+        <template id="frontend-field-template">
+            {% include 'easy-form/forms/_frontend-field' with { field: {}, index: 'NEW_INDEX' } %}
+        </template>
+
+        <hr>
+
+        <h2>{{ 'Searchable columns'|t('easy-form') }}</h2>
+        <p class="light">{{ 'Copy a field’s value into an indexed column so it shows in the submissions list, the CSV export, and the search box. Values stay in the submission data too — these are fast-access copies.'|t('easy-form') }}</p>
+
+        {% set promoted = form.getPromotedFields() %}
+        {% set knownHandles = [] %}
+        {% for f in form.getFields() %}{% set knownHandles = knownHandles|merge([f.handle]) %}{% endfor %}
+        {% for f in form.getFrontendFields() %}{% set knownHandles = knownHandles|merge([f.handle]) %}{% endfor %}
+
+        <datalist id="ef-known-handles">
+            {% for h in knownHandles %}<option value="{{ h }}">{% endfor %}
+        </datalist>
+
+        {% for col in [
+            { key: 'primaryEmail', label: 'Email field'|t('easy-form'), hint: 'The form’s email field. Searchable, and used to find a person’s submissions for privacy (GDPR) export/erasure.'|t('easy-form') },
+            { key: 'searchCol1', label: 'Search column 1'|t('easy-form'), hint: 'Any field handle — its value becomes searchable / filterable.'|t('easy-form') },
+            { key: 'searchCol2', label: 'Search column 2'|t('easy-form'), hint: 'Any field handle — its value becomes searchable / filterable.'|t('easy-form') },
+            { key: 'searchCol3', label: 'Search column 3'|t('easy-form'), hint: 'Any field handle — its value becomes searchable / filterable.'|t('easy-form') }
+        ] %}
+            <div class="field">
+                <div class="heading"><label>{{ col.label }}</label></div>
+                <div class="instructions"><p>{{ col.hint }}</p></div>
+                <div class="input ltr">
+                    <input type="text" class="text code" list="ef-known-handles"
+                        name="promotedFields[{{ col.key }}]"
+                        value="{{ promoted[col.key]|default('') }}"
+                        placeholder="{{ 'handle'|t('easy-form') }}">
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div id="behavior" class="hidden ef-pane-card">
+
+        {{ loc.field({
+            label: 'Redirect URL'|t('easy-form'),
+            instructions: 'Optional URL to redirect to after submission — a relative path (e.g. /thank-you) or a full https:// URL. Per-site values fall back to the default below when left blank.'|t('easy-form'),
+            baseName: 'redirectUrl',
+            baseValue: form.redirectUrl,
+            mapName: 'siteRedirectUrls',
+            mapValues: form.getSiteRedirectUrlsArray(),
+            placeholder: '/thank-you'
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Hide Form on Success'|t('easy-form'),
+            instructions: 'Hide the form after successful submission and only show the success message.'|t('easy-form'),
+            id: 'hideFormOnSuccess',
+            name: 'hideFormOnSuccess',
+            on: form.hideFormOnSuccess
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Keep success message visible'|t('easy-form'),
+            instructions: 'Leave the success message on screen until the visitor reloads the page. Turn off to auto-hide it after a delay.'|t('easy-form'),
+            id: 'keepSuccessMessage',
+            name: 'keepSuccessMessage',
+            on: form.keepSuccessMessage,
+            reverseToggle: '#successMessageDuration-field'
+        }) }}
+
+        {{ forms.textField({
+            type: 'number',
+            label: 'Auto-hide success message after'|t('easy-form'),
+            instructions: 'How long the success message stays visible before it disappears.'|t('easy-form'),
+            id: 'successMessageDuration',
+            name: 'successMessageDuration',
+            value: form.successMessageDuration,
+            min: 1,
+            size: 5,
+            unit: 'seconds'|t('easy-form')
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Pre-fill from URL'|t('easy-form'),
+            instructions: 'Allow this form to pre-fill fields from matching URL query parameters (e.g. ?email=jane@acme.com fills the “email” field).'|t('easy-form'),
+            id: 'allowUrlPrefill',
+            name: 'allowUrlPrefill',
+            on: form.allowUrlPrefill
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Show Step Indicator'|t('easy-form'),
+            instructions: 'On multi-page forms, show a numbered step indicator above the form.'|t('easy-form'),
+            id: 'showStepIndicator',
+            name: 'showStepIndicator',
+            on: form.showStepIndicator
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Validate each step'|t('easy-form'),
+            instructions: 'On multi-page forms, check the current step before letting the user advance. This is a front-end convenience only — the server always validates the whole submission on final submit. Turn off to let people move freely between steps.'|t('easy-form'),
+            id: 'validateSteps',
+            name: 'validateSteps',
+            on: form.validateSteps
+        }) }}
+
+        <hr>
+
+        <h3>{{ 'Webhook'|t('easy-form') }}</h3>
+
+        {{ forms.textField({
+            label: 'Webhook URL'|t('easy-form'),
+            instructions: 'POST each new (non-spam) submission to this URL as JSON. Leave blank to disable. Add authentication headers via the Webhooks::EVENT_BEFORE_SEND PHP event.'|t('easy-form'),
+            id: 'webhookUrl',
+            name: 'webhookUrl',
+            value: form.webhookUrl,
+            placeholder: 'https://example.com/hooks/easy-form'
+        }) }}
+
+        {{ forms.selectField({
+            label: 'Webhook Payload'|t('easy-form'),
+            instructions: 'Full sends {values, frontend, meta} plus form/submission metadata. Data only sends a flat map of field handles to values.'|t('easy-form'),
+            id: 'webhookPayload',
+            name: 'webhookPayload',
+            options: [
+                { label: 'Full payload'|t('easy-form'), value: 'full' },
+                { label: 'Data only'|t('easy-form'), value: 'data' }
+            ],
+            value: form.webhookPayload
+        }) }}
+
+        <hr>
+
+        <h3>{{ 'File handling'|t('easy-form') }}</h3>
+
+        {% set fileOverride = form.fileOverride ?? {} %}
+        {% set foEnabled = fileOverride.enabled ?? false %}
+        {% set foMode = fileOverride.uploadMode ?? 'asset' %}
+        {% set volumeOptions = [{ label: 'Select a volume…'|t('easy-form'), value: '' }] %}
+        {% for volume in craft.app.volumes.allVolumes %}
+            {% set volumeOptions = volumeOptions|merge([{ label: volume.name, value: volume.uid }]) %}
+        {% endfor %}
+
+        {{ forms.lightswitchField({
+            label: 'Override global file handling'|t('easy-form'),
+            instructions: 'Store this form’s uploads using form-specific settings instead of the global Easy Form settings.'|t('easy-form'),
+            id: 'fileOverrideEnabled',
+            name: 'fileOverride[enabled]',
+            on: foEnabled,
+            toggle: 'fileOverrideFields'
+        }) }}
+
+        <div id="fileOverrideFields" class="{{ foEnabled ? '' : 'hidden' }}" style="padding-left: 4px;">
+            {{ forms.selectField({
+                label: 'Storage mode'|t('easy-form'),
+                id: 'fileOverrideMode',
+                name: 'fileOverride[uploadMode]',
+                options: [
+                    { label: 'Craft Asset'|t('easy-form'), value: 'asset' },
+                    { label: 'Filesystem'|t('easy-form'), value: 'filesystem' }
+                ],
+                value: foMode
+            }) }}
+
+            <div id="fileOverrideAsset" class="{{ foMode == 'filesystem' ? 'hidden' : '' }}">
+                {{ forms.selectField({
+                    label: 'Upload volume'|t('easy-form'),
+                    instructions: 'Asset volume new uploads are saved to.'|t('easy-form'),
+                    name: 'fileOverride[uploadVolumeUid]',
+                    options: volumeOptions,
+                    value: fileOverride.uploadVolumeUid ?? ''
+                }) }}
+
+                {{ forms.textField({
+                    label: 'Subfolder'|t('easy-form'),
+                    instructions: 'Optional subfolder within the volume.'|t('easy-form'),
+                    name: 'fileOverride[uploadSubfolder]',
+                    value: fileOverride.uploadSubfolder ?? ''
+                }) }}
+            </div>
+
+            <div id="fileOverrideFs" class="{{ foMode == 'filesystem' ? '' : 'hidden' }}">
+                {{ forms.textField({
+                    label: 'Filesystem path'|t('easy-form'),
+                    instructions: 'Absolute or aliased path, e.g. @webroot/form-uploads.'|t('easy-form'),
+                    name: 'fileOverride[uploadFilesystemPath]',
+                    value: fileOverride.uploadFilesystemPath ?? '',
+                    placeholder: '@webroot/form-uploads'
+                }) }}
+
+                {{ forms.textField({
+                    label: 'Base URL'|t('easy-form'),
+                    instructions: 'Public base URL for the path above, e.g. @web/form-uploads.'|t('easy-form'),
+                    name: 'fileOverride[uploadBaseUrl]',
+                    value: fileOverride.uploadBaseUrl ?? '',
+                    placeholder: '@web/form-uploads'
+                }) }}
+
+                {{ forms.lightswitchField({
+                    label: 'Organise into dated subfolders'|t('easy-form'),
+                    instructions: 'Store uploads in Y/m subfolders (e.g. 2026/06/) within the path above. Turn off to save files directly into the path.'|t('easy-form'),
+                    name: 'fileOverride[uploadDateSubfolders]',
+                    on: fileOverride.uploadDateSubfolders ?? true
+                }) }}
+
+                <blockquote class="note warning">
+                    <p>{{ 'If the path is inside your web root, uploaded files may be directly reachable by anyone who knows or guesses the URL. Decide whether site visitors should be able to access these files — if not, block direct access (e.g. with an .htaccess rule or server config) or store uploads outside the web root.'|t('easy-form') }}</p>
+                </blockquote>
+            </div>
+
+            {{ forms.textField({
+                label: 'Max file size (MB)'|t('easy-form'),
+                instructions: 'Leave empty to use the global max file size.'|t('easy-form'),
+                name: 'fileOverride[maxFileSize]',
+                value: fileOverride.maxFileSize ?? '',
+                type: 'number',
+                min: 1
+            }) }}
+        </div>
+
+        {% js %}
+            (function () {
+                var modeEl = document.getElementById('fileOverrideMode');
+                if (!modeEl) return;
+                var assetEl = document.getElementById('fileOverrideAsset');
+                var fsEl = document.getElementById('fileOverrideFs');
+                modeEl.addEventListener('change', function () {
+                    var fs = this.value === 'filesystem';
+                    assetEl.classList.toggle('hidden', fs);
+                    fsEl.classList.toggle('hidden', !fs);
+                });
+            })();
+        {% endjs %}
+    </div>
+
+    <div id="messages" class="hidden ef-pane-card">
+                
+        {{ loc.field({
+            label: 'Success message'|t('easy-form'),
+            instructions: 'Shown after a successful submission.'|t('easy-form'),
+            type: 'textarea',
+            rows: 3,
+            mapName: 'siteSuccessMessages',
+            mapValues: form.siteSuccessMessagesArray ?? {},
+            othersFallback: 'primary'
+        }) }}
+
+        <hr>
+
+        {{ loc.field({
+            label: 'Error message'|t('easy-form'),
+            instructions: 'Shown if a submission fails.'|t('easy-form'),
+            type: 'textarea',
+            rows: 3,
+            mapName: 'siteErrorMessages',
+            mapValues: form.siteErrorMessagesArray ?? {},
+            othersFallback: 'primary'
+        }) }}
+
+        <hr>
+
+        {{ loc.field({
+            label: 'Submit button label'|t('easy-form'),
+            instructions: 'Text on the submit button. Defaults to "Submit" when left blank.'|t('easy-form'),
+            baseName: 'submitButtonLabel',
+            baseValue: form.submitButtonLabel,
+            mapName: 'siteSubmitButtonLabels',
+            mapValues: form.getSiteSubmitButtonLabelsArray(),
+            placeholder: 'Submit'|t('easy-form')
+        }) }}
+    </div>
+
+    <div id="emailnotifications" class="hidden ef-pane-card">
+        <p class="light">{{ 'Configure multiple email notifications for this form.'|t('easy-form') }}</p>
+
+        {% set notifications = form.notificationSettingsArray %}
+        {# Backward compatibility: if it looks like the old single object format (has 'recipients' key), wrap it #}
+        {% if notifications is not empty and notifications.recipients is defined %}
+            {% set notifications = [notifications] %}
+        {% endif %}
+
+        <div id="notifications-list">
+            {% for notification in notifications %}
+                {% include 'easy-form/forms/_notification' with { 
+                    notification: notification, 
+                    index: loop.index0 
+                } %}
+            {% endfor %}
+        </div>
+
+        <button type="button" class="btn dashed" id="add-notification-btn" style="width: 100%; margin-top: 15px;"><span class="icon" data-icon="plus"></span> {{ 'Add Notification'|t('easy-form') }}</button>
+        
+        {# Template for new notifications #}
+        <template id="notification-template">
+            {% include 'easy-form/forms/_notification' with {
+                notification: { enabled: true },
+                index: 'NEW_INDEX'
+            } %}
+        </template>
+    </div>
+    </div>{# /.ef-editor #}
+{% endblock %}
+
+{% css %}
+/* ── Phase 1: editor chrome (full-bleed canvas + cards) ──────── */
+#content.content-pane:has(.ef-editor) { background: transparent; box-shadow: none; padding: 0; border: 0; border-radius: 0; }
+
+/* ── Phase 2: our own tab bar (text tabs with an active underline) ── */
+.ef-tabnav { display: flex; gap: 0; margin: 0 0 24px; border-bottom: 1px solid var(--hairline-color, #e3e8ef); overflow-x: auto; }
+.ef-tabnav-item {
+    position: relative; margin: 0; padding: 11px 13px; white-space: nowrap;
+    background: transparent; border: 0; border-radius: 0; box-shadow: none;
+    color: var(--medium-text-color, #5a6573); font-weight: 500; font-size: 14px; cursor: pointer;
+}
+.ef-tabnav-item:hover { color: var(--text-color, #1d2530); }
+.ef-tabnav-item.is-active { color: #2160e6; box-shadow: inset 0 -2px 0 #2160e6; }
+/* Validation-error state (after a failed save). */
+.ef-tabnav-item.has-error { color: #b32328; }
+.ef-tabnav-item.has-error::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #b32328; margin-left: 7px; vertical-align: middle; }
+.ef-tabnav-item.has-error.is-active { color: #b32328; box-shadow: inset 0 -2px 0 #b32328; }
+
+.ef-editor .ef-card,
+.ef-editor .ef-pane-card {
+    background: var(--white, #fff);
+    border: 1px solid var(--hairline-color, #e3e8ef);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 6px 16px rgba(16,24,40,.05);
+    margin-bottom: 20px;
+}
+.ef-editor .ef-card--pad,
+.ef-editor .ef-pane-card { padding: 22px 24px; }
+
+.ef-editor .ef-card-title { margin: 0 0 4px; font-size: 16px; font-weight: 600; color: var(--text-color, #1d2530); }
+.ef-editor .ef-card-title + .ef-card-sub { margin-top: 0; }
+.ef-editor .ef-card-sub { margin: 0 0 18px; color: var(--light-text-color, #8893a2); font-size: 13px; }
+
+/* The card title sits above the first field; give it breathing room. */
+.ef-editor .ef-card-title + .field,
+.ef-editor .ef-card-title + .ef-card-sub + * { margin-top: 16px; }
+
+/* Softer, rounder inputs to match the design. */
+.ef-editor .ef-card .text,
+.ef-editor .ef-pane-card .text { border-radius: 10px; }
+
+/* ── Phase 5: tidy the settings / data / messages / notifications panes ── */
+.ef-editor .ef-pane-card > h2,
+.ef-editor .ef-pane-card > h3 { font-size: 14px; font-weight: 600; color: var(--text-color, #1d2530); margin: 4px 0 2px; }
+.ef-editor .ef-pane-card > h2 + .light,
+.ef-editor .ef-pane-card > h3 + .light { margin-top: 0; }
+.ef-editor .ef-pane-card hr { border: 0; border-top: 1px solid var(--hairline-color, #e3e8ef); margin: 24px 0; }
+/* Promoted-field handle inputs read better at a sensible width. */
+.ef-editor #data .field .input.ltr > input[list] { max-width: 360px; }
+{% endcss %}
+
+{% js %}
+(function () {
+    var tabs = document.querySelectorAll('.ef-tabnav-item');
+    if (!tabs.length) return;
+    var paneIds = ['layout', 'settings', 'data', 'behavior', 'messages', 'emailnotifications'];
+    function activate(tab) {
+        tabs.forEach(function (t) { t.classList.remove('is-active'); });
+        tab.classList.add('is-active');
+        var active = tab.dataset.pane;
+        paneIds.forEach(function (id) {
+            var pane = document.getElementById(id);
+            if (pane) pane.classList.toggle('hidden', id !== active);
+        });
+        // The field palette lives in Craft's details sidebar (always present);
+        // only show it while the Layout tab is active.
+        var palette = document.querySelector('.ef-field-palette');
+        if (palette) palette.classList.toggle('hidden', active !== 'layout');
+    }
+    tabs.forEach(function (tab) { tab.addEventListener('click', function () { activate(tab); }); });
+
+    // After a failed save, flag tabs whose pane has field errors and jump to
+    // the first one so the user sees what needs fixing.
+    var firstErrored = null;
+    paneIds.forEach(function (id) {
+        var pane = document.getElementById(id);
+        if (pane && pane.querySelector('ul.errors li')) {
+            var tab = document.querySelector('.ef-tabnav-item[data-pane="' + id + '"]');
+            if (tab) { tab.classList.add('has-error'); if (!firstErrored) firstErrored = tab; }
+        }
+    });
+    if (firstErrored && !firstErrored.classList.contains('is-active')) activate(firstErrored);
+})();
+{% endjs %}
+
+{% block details %}
+    <div class="meta">
+        {% if not isNew %}
+            <div class="data">
+                <h5 class="heading">{{ 'Date Created'|t('app') }}</h5>
+                <div class="value">{{ form.dateCreated|datetime('short') }}</div>
+            </div>
+            <div class="data">
+                <h5 class="heading">{{ 'Date Updated'|t('app') }}</h5>
+                <div class="value">{{ form.dateUpdated|datetime('short') }}</div>
+            </div>
+        {% endif %}
+    </div>
+
+    {% include 'easy-form/forms/_field-palette' %}
+{% endblock %}

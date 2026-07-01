@@ -1,0 +1,41 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Validation Rules",
+    "handle": "e2eValidation",
+    "description": "Fields with server-side constraints, used to verify validation is enforced independently of the client.",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Form",
+          "rows": [
+            {
+              "id": "r1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Username", "handle": "username", "required": true, "minLength": 3, "maxLength": 8 },
+                { "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true }
+              ]
+            },
+            {
+              "id": "r2",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f3", "type": "number", "label": "Age", "handle": "age", "min": 18, "max": 99 }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [
+        { "handle": "score", "label": "Score", "type": "number" }
+      ],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "username" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

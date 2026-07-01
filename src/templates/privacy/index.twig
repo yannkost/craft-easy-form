@@ -1,0 +1,42 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms' as forms %}
+
+{% set title = 'Privacy'|t('easy-form') %}
+{% set selectedSubnavItem = 'privacy' %}
+
+{% block content %}
+    <h2>{{ 'Data subject requests'|t('easy-form') }}</h2>
+    <p class="light">{{ 'Export or permanently erase every submission associated with an email address (across all forms), for GDPR access and erasure requests. Matching is by the promoted email column and by the email appearing in the submission data.'|t('easy-form') }}</p>
+
+    <form method="post" accept-charset="UTF-8" id="privacy-form">
+        {{ csrfInput() }}
+
+        {{ forms.textField({
+            label: 'Email address'|t('easy-form'),
+            name: 'email',
+            type: 'email',
+            value: email ?? '',
+            required: true,
+            placeholder: 'person@example.com',
+            autofocus: true
+        }) }}
+
+        <div class="buttons" style="display: flex; gap: 10px;">
+            <button type="submit" class="btn submit" formaction="{{ actionUrl('easy-form/privacy/export') }}">
+                {{ 'Export data (JSON)'|t('easy-form') }}
+            </button>
+            <button type="submit" class="btn error" id="erase-btn" formaction="{{ actionUrl('easy-form/privacy/erase') }}">
+                {{ 'Erase all data'|t('easy-form') }}
+            </button>
+        </div>
+    </form>
+
+    {% js %}
+        document.getElementById('erase-btn').addEventListener('click', function (e) {
+            var email = document.querySelector('#privacy-form [name="email"]').value || 'this address';
+            if (!confirm('Permanently delete ALL submissions for ' + email + '? This cannot be undone.')) {
+                e.preventDefault();
+            }
+        });
+    {% endjs %}
+{% endblock %}

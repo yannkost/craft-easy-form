@@ -1,0 +1,49 @@
+*.DS_Store
+*.idea/*
+*.log
+*Thumbs.db
+.env
+/node_modules
+/vendor
+
+# PHPUnit
+/.phpunit.cache
+/phpunit.phar
+
+# Playwright
+/node_modules
+/test-results
+/playwright-report
+/.playwright
+/tests/e2e/.auth
+
+# Local design mockups / references (not part of the plugin)
+/design
+
+# Serena (local coding-assistant tooling state)
+/.serena
+
+# Local working docs / planning / review notes (not part of the plugin).
+# Kept on disk locally but never committed; only README/LICENSE/CHANGELOG ship.
+/POSITIONING.md
+/TODO.md
+/PRE-PUBLISH-CHECKLIST.md
+/SECURITY-REVIEW.md
+/AGENTS.md
+/CURRENT_APPROACH_ANALYSIS.md
+/DOC-EXAMPLES-REPORT.md
+/FRONTEND-REVIEW.md
+/IDEAS.md
+/IMPLEMENTATION_PLAN.md
+/MANUAL-TESTING.md
+/MANUAL_TEST_SUITE.md
+/POLISH-REVIEW.md
+/POLISH_PLAN.md
+/RELEASING.md
+/REWRITE_RECAP.md
+/STATUS-2026-06-03.md
+/TEST-COVERAGE-REPORT.md
+/src/assets/dist/REFACTORING-SUMMARY.md
+
+# Windows (WSL) download metadata
+*:Zone.Identifier

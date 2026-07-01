@@ -1,0 +1,47 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Conditional Page",
+    "handle": "e2eCondPage",
+    "description": "A second page shown only when plan=full, used to verify page-level conditions and anti-tamper.",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Plan",
+          "rows": [
+            {
+              "id": "r1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true },
+                { "id": "f3", "type": "select", "label": "Plan", "handle": "plan", "options": "basic:Basic\nfull:Full" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "page_2",
+          "label": "Add-ons",
+          "conditions": { "action": "show", "logic": "all", "rules": [ { "field": "plan", "operator": "equals", "value": "full" } ] },
+          "rows": [
+            {
+              "id": "r2",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f4", "type": "text", "label": "Add-ons", "handle": "addons" }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

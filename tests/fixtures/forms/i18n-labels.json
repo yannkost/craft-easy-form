@@ -1,0 +1,59 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E i18n Labels",
+    "handle": "e2eI18n",
+    "description": "Form whose field labels have French overrides, used by the i18n e2e tests.",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Contact",
+          "rows": [
+            {
+              "id": "r1",
+              "stackOnMobile": true,
+              "fields": [
+                {
+                  "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true,
+                  "siteLabels": { "french": "Nom" },
+                  "siteRequiredMessages": { "french": "Le nom est obligatoire" }
+                },
+                {
+                  "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true,
+                  "siteLabels": { "french": "Courriel" }
+                }
+              ]
+            },
+            {
+              "id": "r2",
+              "stackOnMobile": true,
+              "fields": [
+                {
+                  "id": "f3", "type": "textarea", "label": "Message", "handle": "message",
+                  "siteLabels": { "french": "Message (fr)" }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null,
+    "notificationSettings": [
+      {
+        "enabled": true,
+        "name": "Admin notification",
+        "recipients": ["easyform-i18n@example.test"],
+        "subject": "New i18n submission",
+        "senderEmail": "no-reply@example.test",
+        "senderName": "Easy Form"
+      }
+    ]
+  }
+}

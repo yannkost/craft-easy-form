@@ -1,0 +1,9 @@
+{# Hidden field — submits a fixed default value (e.g. tracking constants).
+   A render-time value override — easyForm('x', { values: { handle: '…' } }) —
+   wins over the builder default and its per-site variants. #}
+{% set fieldDefault = options.values[field.handle] ?? field.siteDefaultValues[currentSite.handle]|default(field.defaultValue|default('')) %}
+<input
+    type="hidden"
+    name="fields[{{ field.handle }}]"
+    value="{{ fieldDefault }}"
+>

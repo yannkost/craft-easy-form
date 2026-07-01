@@ -1,0 +1,32 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Multi File",
+    "handle": "e2eMultiFile",
+    "description": "A file field with allowMultiple, used to verify multi-file uploads (e2e).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Upload",
+          "rows": [
+            {
+              "id": "r1",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "f2", "type": "file", "label": "Documents", "handle": "docs", "maxFileSize": 1, "allowedFileTypes": "txt", "allowMultiple": true }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E Presentational",
+    "handle": "e2ePresentational",
+    "description": "Form with heading / divider / callout presentational fields (e2e).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_h",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "p1", "type": "heading", "label": "Contact details", "handle": "headingContact", "headingLevel": "h2", "siteLabels": { "french": "Coordonnées" } }
+              ]
+            },
+            {
+              "id": "row_c",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "p2", "type": "callout", "label": "We reply within one business day.", "handle": "calloutNotice", "calloutStyle": "warning", "calloutColor": "#ff5722" }
+              ]
+            },
+            {
+              "id": "row_d",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "p3", "type": "divider", "label": "Divider", "handle": "dividerOne" }
+              ]
+            },
+            {
+              "id": "row_f",
+              "stackOnMobile": true,
+              "fields": [
+                { "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true },
+                { "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

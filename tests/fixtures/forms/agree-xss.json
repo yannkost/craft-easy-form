@@ -1,0 +1,55 @@
+{
+  "easyForm": {
+    "type": "form",
+    "version": 1
+  },
+  "form": {
+    "name": "E2E Agree XSS",
+    "handle": "e2eAgreeXss",
+    "description": "Agree field with hostile label/link to verify escaping (e2e).",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Page 1",
+          "rows": [
+            {
+              "id": "row_1",
+              "stackOnMobile": true,
+              "fields": [
+                {
+                  "id": "a1",
+                  "type": "agree",
+                  "label": "Agree",
+                  "handle": "agreeField",
+                  "required": true,
+                  "agreeText": "I accept <script>alert(1)</script> the Terms and Privacy",
+                  "links": {
+                    "default": [
+                      {
+                        "text": "Terms",
+                        "entryId": null,
+                        "url": "javascript:alert(2)"
+                      },
+                      {
+                        "text": "Privacy",
+                        "entryId": null,
+                        "url": "/privacy"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": {}
+    },
+    "enabled": true,
+    "captchaProvider": null
+  }
+}

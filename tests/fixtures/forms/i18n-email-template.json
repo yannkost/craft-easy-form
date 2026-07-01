@@ -1,0 +1,49 @@
+{
+  "easyForm": { "type": "form", "version": 1 },
+  "form": {
+    "name": "E2E i18n Email Template",
+    "handle": "e2eI18nTpl",
+    "description": "Like e2eI18n, but its notification renders a Twig template (dev/email-i18n) to exercise per-site labels in the Twig email path.",
+    "fieldLayout": {
+      "schemaVersion": 3,
+      "extraFieldPolicy": "allowListed",
+      "pages": [
+        {
+          "id": "page_1",
+          "label": "Contact",
+          "rows": [
+            {
+              "id": "r1",
+              "stackOnMobile": true,
+              "fields": [
+                {
+                  "id": "f1", "type": "text", "label": "Name", "handle": "name", "required": true,
+                  "siteLabels": { "french": "Nom" }
+                },
+                {
+                  "id": "f2", "type": "email", "label": "Email", "handle": "email", "required": true,
+                  "siteLabels": { "french": "Courriel" }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "frontendFields": [],
+      "promotedFields": { "primaryEmail": "email", "primaryName": "name" }
+    },
+    "enabled": true,
+    "captchaProvider": null,
+    "notificationSettings": [
+      {
+        "enabled": true,
+        "name": "Admin notification (Twig)",
+        "recipients": ["easyform-i18n-tpl@example.test"],
+        "subject": "New i18n template submission",
+        "senderEmail": "no-reply@example.test",
+        "senderName": "Easy Form",
+        "template": "dev/email-i18n"
+      }
+    ]
+  }
+}
