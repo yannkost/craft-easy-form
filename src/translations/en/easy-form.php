@@ -682,4 +682,9 @@ return [
     'This site is protected by reCAPTCHA and the Google {privacyPolicy} and {termsOfService} apply.' => 'This site is protected by reCAPTCHA and the Google {privacyPolicy} and {termsOfService} apply.',
     'Reject submission on CAPTCHA failure' => 'Reject submission on CAPTCHA failure',
     'When on, a failed CAPTCHA shows an error and rejects the submission. When off (default), the submission is filed silently as spam — kept only if “Save spam submissions” is on.' => 'When on, a failed CAPTCHA shows an error and rejects the submission. When off (default), the submission is filed silently as spam — kept only if “Save spam submissions” is on.',
+    'Spam Reason' => 'Spam Reason',
+    'Honeypot filled' => 'Honeypot filled',
+    'Blocked email domain' => 'Blocked email domain',
+    'Blocked keyword' => 'Blocked keyword',
+    'CAPTCHA failed' => 'CAPTCHA failed',
 ];

@@ -926,6 +926,7 @@ class SubmissionsController extends Controller
         $submission->userAgent = $settings->storeIpAddresses ? Craft::$app->request->userAgent : null;
         $submission->status = $isSpam ? 'spam' : ($form->autoApprove ? 'approved' : 'pending');
         $submission->honeypotValue = $isSpam ? $honeypot : null;
+        $submission->spamReason = $isSpam ? $spamReason : null;
         $submission->captchaScore = $captchaScore;
 
         // Save submission

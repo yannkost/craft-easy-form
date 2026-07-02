@@ -58,6 +58,7 @@ class Submission extends Model
     public ?float $spamScore = null;
     public ?float $captchaScore = null;
     public ?string $honeypotValue = null;
+    public ?string $spamReason = null;
     public bool $isTest = false;
 
     public ?string $dateCreated = null;
@@ -85,6 +86,7 @@ class Submission extends Model
             'status' => Craft::t('easy-form', 'Status'),
             'spamScore' => Craft::t('easy-form', 'Spam Score'),
             'captchaScore' => Craft::t('easy-form', 'CAPTCHA Score'),
+            'spamReason' => Craft::t('easy-form', 'Spam Reason'),
             'primaryEmail' => Craft::t('easy-form', 'Email'),
             'searchCol1' => Craft::t('easy-form', 'Search column 1'),
             'searchCol2' => Craft::t('easy-form', 'Search column 2'),
@@ -107,6 +109,7 @@ class Submission extends Model
             ['spamScore', 'number', 'min' => 0, 'max' => 1],
             ['captchaScore', 'number', 'min' => 0, 'max' => 1],
             ['honeypotValue', 'string', 'max' => 255],
+            ['spamReason', 'string', 'max' => 64],
             ['isTest', 'boolean'],
         ];
     }

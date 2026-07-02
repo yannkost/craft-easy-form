@@ -158,6 +158,7 @@ class Install extends Migration
             'spamScore' => $this->decimal(3, 2),
             'captchaScore' => $this->decimal(3, 2),
             'honeypotValue' => $this->string(255),
+            'spamReason' => $this->string(64),
             'isTest' => $this->boolean()->defaultValue(false)->notNull(),
 
             // Craft standard + soft delete

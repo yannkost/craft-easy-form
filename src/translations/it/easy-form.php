@@ -676,4 +676,9 @@ return [
     'This site is protected by reCAPTCHA and the Google {privacyPolicy} and {termsOfService} apply.' => 'Questo sito è protetto da reCAPTCHA e si applicano le {privacyPolicy} e i {termsOfService} di Google.',
     'Reject submission on CAPTCHA failure' => 'Rifiuta l’invio se il CAPTCHA fallisce',
     'When on, a failed CAPTCHA shows an error and rejects the submission. When off (default), the submission is filed silently as spam — kept only if “Save spam submissions” is on.' => 'Se attivo, un CAPTCHA non superato mostra un errore e rifiuta l’invio. Se disattivato (impostazione predefinita), l’invio viene archiviato silenziosamente come spam — conservato solo se «Salva gli invii di spam» è attivo.',
+    'Spam Reason' => 'Motivo dello spam',
+    'Honeypot filled' => 'Honeypot compilato',
+    'Blocked email domain' => 'Dominio email bloccato',
+    'Blocked keyword' => 'Parola chiave bloccata',
+    'CAPTCHA failed' => 'CAPTCHA non superato',
 ];
