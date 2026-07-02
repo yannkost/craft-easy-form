@@ -1,5 +1,31 @@
 # Release Notes for Easy Form
 
+## 1.1.0 - 2026-07-02
+
+### Added
+
+- reCAPTCHA v3: a **Branding** setting that hides Google's floating badge and
+  shows the required inline disclosure notice near the submit button (default,
+  always visible and Terms-compliant), or keeps Google's floating badge.
+- reCAPTCHA v3: a per-form **score threshold** override that falls back to the
+  global default when left blank.
+- reCAPTCHA v3: the verification score is now logged and stored on each
+  submission, shown as **CAPTCHA Score** in the control panel.
+- A per-form **Reject submission on CAPTCHA failure** toggle.
+- Submissions now record and display a **Spam Reason** (honeypot, blocked email
+  domain, blocked keyword, or CAPTCHA), shown on the submission detail.
+- Translations for all new control-panel strings across German, Dutch, French,
+  Spanish, and Italian.
+
+### Changed
+
+- A failed CAPTCHA is now filed **silently as spam** by default — consistent with
+  honeypot and blocked-keyword handling — instead of hard-rejecting with an
+  error. Enable the per-form *Reject submission on CAPTCHA failure* toggle for the
+  previous behavior.
+- Every CAPTCHA outcome is now written to `easy-form.log`; previously only
+  score-based blocks were logged, so missing/invalid-token failures were silent.
+
 ## 1.0.0 - 2026-06-25
 
 > First public release.
