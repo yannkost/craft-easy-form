@@ -23,6 +23,13 @@ class Settings extends Model
     public string $recaptchaV3SiteKey = '';
     public string $recaptchaV3Secret = '';
     public float $recaptchaV3ScoreThreshold = 0.5;
+
+    /**
+     * @var string reCAPTCHA v3 branding: 'badge' shows Google's floating badge;
+     * 'inline' hides the badge and renders the required disclosure text near the
+     * submit button (compliant with Google's Terms, and always visible).
+     */
+    public string $recaptchaV3Badge = 'inline';
     public string $recaptchaV2SiteKey = '';
     public string $recaptchaV2Secret = '';
 

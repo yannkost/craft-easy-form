@@ -690,11 +690,32 @@ class SubmissionsController extends Controller
         }
 
         // CAPTCHA verification (per-form provider).
+        $captchaScore = null;
         if ($form->captchaProvider) {
             $captcha = EasyForm::getInstance()->captcha->getProvider($form->captchaProvider);
             if ($captcha && $captcha->isConfigured()) {
                 $token = Craft::$app->request->getBodyParam($captcha->getTokenParam());
-                if (!$captcha->verify($token, Craft::$app->request->userIP)) {
+                // Per-form score threshold overrides the global setting when set.
+                $context = [];
+                if ($form->captchaScoreThreshold !== null) {
+                    $context['scoreThreshold'] = $form->captchaScoreThreshold;
+                }
+                $passed = $captcha->verify($token, Craft::$app->request->userIP, $context);
+                // Score-based providers (v3) expose the resolved score; log & store it.
+                $captchaScore = $captcha->getLastScore();
+                if ($captchaScore !== null) {
+                    $threshold = $form->captchaScoreThreshold
+                        ?? (float) EasyForm::getInstance()->getSettings()->recaptchaV3ScoreThreshold;
+                    EasyForm::log(sprintf(
+                        "CAPTCHA '%s' score %.2f vs threshold %.2f for form '%s': %s",
+                        $form->captchaProvider,
+                        $captchaScore,
+                        (float) $threshold,
+                        $form->handle,
+                        $passed ? 'passed' : 'blocked'
+                    ), $passed ? 'info' : 'warning');
+                }
+                if (!$passed) {
                     $captchaError = Craft::t('easy-form', 'CAPTCHA verification failed. Please try again.');
                     if (Craft::$app->request->getAcceptsJson()) {
                         return $this->asJson(['success' => false, 'error' => $captchaError]);
@@ -888,6 +909,7 @@ class SubmissionsController extends Controller
         $submission->userAgent = $settings->storeIpAddresses ? Craft::$app->request->userAgent : null;
         $submission->status = $isSpam ? 'spam' : ($form->autoApprove ? 'approved' : 'pending');
         $submission->honeypotValue = $isSpam ? $honeypot : null;
+        $submission->captchaScore = $captchaScore;
 
         // Save submission
         $saved = EasyForm::getInstance()->submissions->saveSubmission($submission);

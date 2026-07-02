@@ -174,6 +174,7 @@ namespace yannkost\easyform\models {
             public bool $saveSpamSubmissions = false;
             public bool $autoApprove = true;
             public ?string $captchaProvider = null;
+            public ?float $captchaScoreThreshold = null;
             public bool $allowUrlPrefill = false;
             public bool $showStepIndicator = false;
             public bool $validateSteps = true;
@@ -264,6 +265,7 @@ namespace yannkost\easyform\records {
             public bool $saveSpamSubmissions = false;
             public bool $autoApprove = true;
             public ?string $captchaProvider = null;
+            public ?float $captchaScoreThreshold = null;
             public bool $allowUrlPrefill = false;
             public bool $showStepIndicator = false;
             public bool $validateSteps = true;

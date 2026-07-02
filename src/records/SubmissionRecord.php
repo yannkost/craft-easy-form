@@ -25,6 +25,7 @@ use yii\db\ActiveQueryInterface;
  * @property string|null $userAgent
  * @property string $status
  * @property float|null $spamScore
+ * @property float|null $captchaScore
  * @property string|null $honeypotValue
  * @property bool $isTest
  * @property string $dateCreated

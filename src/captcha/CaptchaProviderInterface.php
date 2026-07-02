@@ -34,6 +34,16 @@ interface CaptchaProviderInterface
      *
      * @param string|null $token
      * @param string|null $ip Remote IP, when available.
+     * @param array $context Optional per-request context. Score-based providers
+     *                       (reCAPTCHA v3) read ['scoreThreshold' => float] to
+     *                       apply a per-form threshold override.
      */
-    public function verify(?string $token, ?string $ip = null): bool;
+    public function verify(?string $token, ?string $ip = null, array $context = []): bool;
+
+    /**
+     * Score from the most recent verify() call, for score-based providers
+     * (reCAPTCHA v3). Null when not applicable (checkbox/challenge providers),
+     * when verification failed before a score was returned, or on fail-open.
+     */
+    public function getLastScore(): ?float;
 }

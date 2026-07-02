@@ -56,6 +56,7 @@ class Submission extends Model
 
     public string $status = 'pending';
     public ?float $spamScore = null;
+    public ?float $captchaScore = null;
     public ?string $honeypotValue = null;
     public bool $isTest = false;
 
@@ -83,6 +84,7 @@ class Submission extends Model
             'userAgent' => Craft::t('easy-form', 'User Agent'),
             'status' => Craft::t('easy-form', 'Status'),
             'spamScore' => Craft::t('easy-form', 'Spam Score'),
+            'captchaScore' => Craft::t('easy-form', 'CAPTCHA Score'),
             'primaryEmail' => Craft::t('easy-form', 'Email'),
             'searchCol1' => Craft::t('easy-form', 'Search column 1'),
             'searchCol2' => Craft::t('easy-form', 'Search column 2'),
@@ -103,6 +105,7 @@ class Submission extends Model
             ['userAgent', 'string'],
             ['status', 'in', 'range' => ['pending', 'approved', 'spam', 'archived']],
             ['spamScore', 'number', 'min' => 0, 'max' => 1],
+            ['captchaScore', 'number', 'min' => 0, 'max' => 1],
             ['honeypotValue', 'string', 'max' => 255],
             ['isTest', 'boolean'],
         ];

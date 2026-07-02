@@ -210,6 +210,7 @@ class Forms extends Component
         $record->saveSpamSubmissions = $form->saveSpamSubmissions;
         $record->autoApprove = $form->autoApprove;
         $record->captchaProvider = $form->captchaProvider ?: null;
+        $record->captchaScoreThreshold = $form->captchaScoreThreshold;
         $record->allowUrlPrefill = $form->allowUrlPrefill;
         $record->showStepIndicator = $form->showStepIndicator;
         $record->validateSteps = $form->validateSteps;
@@ -369,6 +370,7 @@ class Forms extends Component
         $form->saveSpamSubmissions = (bool) $record->saveSpamSubmissions;
         $form->autoApprove = (bool) $record->autoApprove;
         $form->captchaProvider = $record->captchaProvider;
+        $form->captchaScoreThreshold = $record->captchaScoreThreshold !== null ? (float) $record->captchaScoreThreshold : null;
         $form->allowUrlPrefill = (bool) $record->allowUrlPrefill;
         $form->showStepIndicator = (bool) $record->showStepIndicator;
         $form->validateSteps = (bool) $record->validateSteps;
@@ -457,6 +459,7 @@ class Forms extends Component
         $target->saveSpamSubmissions = $source->saveSpamSubmissions;
         $target->autoApprove = $source->autoApprove;
         $target->captchaProvider = $source->captchaProvider;
+        $target->captchaScoreThreshold = $source->captchaScoreThreshold;
         $target->allowUrlPrefill = $source->allowUrlPrefill;
         $target->showStepIndicator = $source->showStepIndicator;
         $target->validateSteps = $source->validateSteps;

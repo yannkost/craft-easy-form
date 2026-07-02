@@ -139,6 +139,7 @@ class Submissions extends Component
         $record->userAgent = $submission->userAgent;
         $record->status = $submission->status;
         $record->spamScore = $submission->spamScore;
+        $record->captchaScore = $submission->captchaScore;
         $record->honeypotValue = $submission->honeypotValue;
         $record->isTest = $submission->isTest;
 
@@ -1022,6 +1023,7 @@ class Submissions extends Component
         $submission->userAgent = $record->userAgent;
         $submission->status = $record->status;
         $submission->spamScore = $record->spamScore;
+        $submission->captchaScore = $record->captchaScore !== null ? (float) $record->captchaScore : null;
         $submission->honeypotValue = $record->honeypotValue;
         $submission->isTest = (bool) $record->isTest;
         $submission->dateCreated = $record->dateCreated;

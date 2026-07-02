@@ -119,6 +119,12 @@ class Form extends Model
     public ?string $captchaProvider = null;
 
     /**
+     * @var float|null Per-form reCAPTCHA v3 score threshold override (0–1).
+     * Null falls back to the global setting.
+     */
+    public ?float $captchaScoreThreshold = null;
+
+    /**
      * @var bool Whether to pre-fill fields from URL query params on the front end
      */
     public bool $allowUrlPrefill = false;
@@ -202,6 +208,7 @@ class Form extends Model
             'maxSubmissionsPerUser' => Craft::t('easy-form', 'Max Submissions Per User'),
             'saveSpamSubmissions' => Craft::t('easy-form', 'Save Spam Submissions'),
             'captchaProvider' => Craft::t('easy-form', 'CAPTCHA Provider'),
+            'captchaScoreThreshold' => Craft::t('easy-form', 'Score Threshold'),
         ];
     }
 
@@ -228,6 +235,7 @@ class Form extends Model
             [['enabled', 'hideFormOnSuccess', 'keepSuccessMessage', 'saveSpamSubmissions', 'autoApprove'], 'boolean'],
             ['captchaProvider', 'string', 'max' => 64],
             ['captchaProvider', 'validateCaptchaProvider'],
+            ['captchaScoreThreshold', 'number', 'min' => 0, 'max' => 1],
             ['fieldLayout', 'validateFieldLayout'],
             ['notificationSettings', 'validateNotificationSettings'],
         ];

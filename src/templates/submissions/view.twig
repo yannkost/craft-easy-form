@@ -169,6 +169,11 @@
                         <dd><code class="ef-chip">{{ submission.ipAddress }}</code></dd>
                     {% endif %}
 
+                    {% if submission.captchaScore is not null %}
+                        <dt>{{ 'CAPTCHA Score'|t('easy-form') }}</dt>
+                        <dd><code class="ef-chip">{{ submission.captchaScore }}</code></dd>
+                    {% endif %}
+
                     <dt>{{ 'Submitter'|t('easy-form') }}</dt>
                     <dd>
                         {% if submission.userId %}
