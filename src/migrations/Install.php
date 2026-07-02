@@ -101,6 +101,7 @@ class Install extends Migration
             'autoApprove' => $this->boolean()->defaultValue(true)->notNull(),
             'captchaProvider' => $this->string(64),
             'captchaScoreThreshold' => $this->decimal(3, 2),
+            'rejectOnCaptchaFail' => $this->boolean()->defaultValue(false)->notNull(),
 
             // Behavior flags
             'allowUrlPrefill' => $this->boolean()->defaultValue(false)->notNull(),

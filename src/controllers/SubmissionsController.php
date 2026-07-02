@@ -658,6 +658,63 @@ class SubmissionsController extends Controller
             }
         }
 
+        // CAPTCHA verification (per-form provider). A failure is filed silently
+        // as spam — like the other spam signals above — unless the form opts in
+        // to "reject on CAPTCHA failure", in which case it is refused up front.
+        $captchaScore = null;
+        if ($form->captchaProvider) {
+            $captcha = EasyForm::getInstance()->captcha->getProvider($form->captchaProvider);
+            if ($captcha && $captcha->isConfigured()) {
+                $token = Craft::$app->request->getBodyParam($captcha->getTokenParam());
+                // Per-form score threshold overrides the global setting when set.
+                $context = [];
+                if ($form->captchaScoreThreshold !== null) {
+                    $context['scoreThreshold'] = $form->captchaScoreThreshold;
+                }
+                $passed = $captcha->verify($token, Craft::$app->request->userIP, $context);
+                // Score-based providers (v3) expose the resolved score for storage.
+                $captchaScore = $captcha->getLastScore();
+
+                // Always log the outcome so every rejection is visible.
+                if ($captchaScore !== null) {
+                    $threshold = $form->captchaScoreThreshold
+                        ?? (float) EasyForm::getInstance()->getSettings()->recaptchaV3ScoreThreshold;
+                    EasyForm::log(sprintf(
+                        "CAPTCHA '%s' for form '%s': %s (score %.2f vs threshold %.2f)",
+                        $form->captchaProvider,
+                        $form->handle,
+                        $passed ? 'passed' : 'failed',
+                        $captchaScore,
+                        (float) $threshold
+                    ), $passed ? 'info' : 'warning');
+                } else {
+                    EasyForm::log(sprintf(
+                        "CAPTCHA '%s' for form '%s': %s",
+                        $form->captchaProvider,
+                        $form->handle,
+                        $passed ? 'passed' : 'failed'
+                    ), $passed ? 'info' : 'warning');
+                }
+
+                if (!$passed) {
+                    if ($form->rejectOnCaptchaFail) {
+                        $captchaError = Craft::t('easy-form', 'CAPTCHA verification failed. Please try again.');
+                        if (Craft::$app->request->getAcceptsJson()) {
+                            return $this->asJson(['success' => false, 'error' => $captchaError]);
+                        }
+                        Craft::$app->session->setError($captchaError);
+                        return null;
+                    }
+                    // Default: treat like any other spam signal (filed silently).
+                    $isSpam = true;
+                    $spamReason = $spamReason ?? 'captcha failed';
+                }
+            } else {
+                // Selected provider is no longer configured — fail open.
+                EasyForm::log("Form {$form->id} requests CAPTCHA '{$form->captchaProvider}' but it is not configured; allowing submission.", 'warning');
+            }
+        }
+
         if ($isSpam && !$form->saveSpamSubmissions) {
             // Spam detected and we don't want to save it - silently succeed.
             // Leave a trace so a dropped submission isn't invisible (a real
@@ -687,46 +744,6 @@ class SubmissionsController extends Controller
                 return $this->redirect($redirectUrl);
             }
             return $this->redirectToPostedUrl();
-        }
-
-        // CAPTCHA verification (per-form provider).
-        $captchaScore = null;
-        if ($form->captchaProvider) {
-            $captcha = EasyForm::getInstance()->captcha->getProvider($form->captchaProvider);
-            if ($captcha && $captcha->isConfigured()) {
-                $token = Craft::$app->request->getBodyParam($captcha->getTokenParam());
-                // Per-form score threshold overrides the global setting when set.
-                $context = [];
-                if ($form->captchaScoreThreshold !== null) {
-                    $context['scoreThreshold'] = $form->captchaScoreThreshold;
-                }
-                $passed = $captcha->verify($token, Craft::$app->request->userIP, $context);
-                // Score-based providers (v3) expose the resolved score; log & store it.
-                $captchaScore = $captcha->getLastScore();
-                if ($captchaScore !== null) {
-                    $threshold = $form->captchaScoreThreshold
-                        ?? (float) EasyForm::getInstance()->getSettings()->recaptchaV3ScoreThreshold;
-                    EasyForm::log(sprintf(
-                        "CAPTCHA '%s' score %.2f vs threshold %.2f for form '%s': %s",
-                        $form->captchaProvider,
-                        $captchaScore,
-                        (float) $threshold,
-                        $form->handle,
-                        $passed ? 'passed' : 'blocked'
-                    ), $passed ? 'info' : 'warning');
-                }
-                if (!$passed) {
-                    $captchaError = Craft::t('easy-form', 'CAPTCHA verification failed. Please try again.');
-                    if (Craft::$app->request->getAcceptsJson()) {
-                        return $this->asJson(['success' => false, 'error' => $captchaError]);
-                    }
-                    Craft::$app->session->setError($captchaError);
-                    return null;
-                }
-            } else {
-                // Selected provider is no longer configured — fail open.
-                EasyForm::log("Form {$form->id} requests CAPTCHA '{$form->captchaProvider}' but it is not configured; allowing submission.", 'warning');
-            }
         }
 
         // Get submitted field data

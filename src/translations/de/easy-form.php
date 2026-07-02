@@ -674,4 +674,6 @@ return [
     'reCAPTCHA v3 score threshold' => 'Schwellenwert für reCAPTCHA v3-Score',
     'Terms of Service' => 'Nutzungsbedingungen',
     'This site is protected by reCAPTCHA and the Google {privacyPolicy} and {termsOfService} apply.' => 'Diese Website ist durch reCAPTCHA geschützt und es gelten die {privacyPolicy} und {termsOfService} von Google.',
+    'Reject submission on CAPTCHA failure' => 'Einsendung bei CAPTCHA-Fehler ablehnen',
+    'When on, a failed CAPTCHA shows an error and rejects the submission. When off (default), the submission is filed silently as spam — kept only if “Save spam submissions” is on.' => 'Wenn aktiviert, wird bei einem fehlgeschlagenen CAPTCHA ein Fehler angezeigt und die Einsendung abgelehnt. Wenn deaktiviert (Standard), wird die Einsendung stillschweigend als Spam abgelegt – und nur behalten, wenn „Spam-Einsendungen speichern“ aktiviert ist.',
 ];

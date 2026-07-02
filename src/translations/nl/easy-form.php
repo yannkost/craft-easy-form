@@ -674,4 +674,6 @@ return [
     'reCAPTCHA v3 score threshold' => 'reCAPTCHA v3-scoredrempel',
     'Terms of Service' => 'Servicevoorwaarden',
     'This site is protected by reCAPTCHA and the Google {privacyPolicy} and {termsOfService} apply.' => 'Deze site wordt beschermd door reCAPTCHA en het {privacyPolicy} en de {termsOfService} van Google zijn van toepassing.',
+    'Reject submission on CAPTCHA failure' => 'Inzending weigeren bij CAPTCHA-fout',
+    'When on, a failed CAPTCHA shows an error and rejects the submission. When off (default), the submission is filed silently as spam — kept only if “Save spam submissions” is on.' => 'Indien ingeschakeld, toont een mislukte CAPTCHA een foutmelding en wordt de inzending geweigerd. Indien uitgeschakeld (standaard) wordt de inzending stil als spam opgeslagen — alleen bewaard als „Spaminzendingen opslaan” aan staat.',
 ];

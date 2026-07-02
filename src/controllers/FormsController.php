@@ -269,6 +269,7 @@ class FormsController extends Controller
         $form->captchaProvider = $request->getBodyParam('captchaProvider') ?: null;
         $captchaThreshold = $request->getBodyParam('captchaScoreThreshold');
         $form->captchaScoreThreshold = ($captchaThreshold !== null && $captchaThreshold !== '') ? (float) $captchaThreshold : null;
+        $form->rejectOnCaptchaFail = (bool) $request->getBodyParam('rejectOnCaptchaFail');
         $form->maxSubmissionsPerUser = $request->getBodyParam('maxSubmissionsPerUser') ?: null;
         $form->rateLimit = max(0, (int) $request->getBodyParam('rateLimit', 0));
         $form->rateLimitWindow = max(1, (int) $request->getBodyParam('rateLimitWindow', 60));
@@ -962,6 +963,7 @@ class FormsController extends Controller
             'rateLimitWindow' => $form->rateLimitWindow,
             'captchaProvider' => $form->captchaProvider,
             'captchaScoreThreshold' => $form->captchaScoreThreshold,
+            'rejectOnCaptchaFail' => $form->rejectOnCaptchaFail,
             'allowUrlPrefill' => $form->allowUrlPrefill,
             'showStepIndicator' => $form->showStepIndicator,
             'validateSteps' => $form->validateSteps,
@@ -1061,6 +1063,7 @@ class FormsController extends Controller
         $form->captchaProvider = ($provider && EasyForm::getInstance()->captcha->getProvider($provider)) ? $provider : null;
         $defThreshold = $def['captchaScoreThreshold'] ?? null;
         $form->captchaScoreThreshold = ($defThreshold !== null && $defThreshold !== '') ? (float) $defThreshold : null;
+        $form->rejectOnCaptchaFail = (bool) ($def['rejectOnCaptchaFail'] ?? false);
 
         if (!EasyForm::getInstance()->forms->saveForm($form)) {
             EasyForm::log('Form import failed: ' . json_encode($form->getErrors()), 'error');

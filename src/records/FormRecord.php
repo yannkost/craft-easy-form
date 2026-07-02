@@ -28,6 +28,7 @@ use yii\db\ActiveQueryInterface;
  * @property bool $autoApprove
  * @property string|null $captchaProvider
  * @property float|null $captchaScoreThreshold
+ * @property bool $rejectOnCaptchaFail
  * @property bool $allowUrlPrefill
  * @property bool $showStepIndicator
  * @property bool $validateSteps

@@ -680,4 +680,6 @@ return [
     'reCAPTCHA v3 score threshold' => 'reCAPTCHA v3 score threshold',
     'Terms of Service' => 'Terms of Service',
     'This site is protected by reCAPTCHA and the Google {privacyPolicy} and {termsOfService} apply.' => 'This site is protected by reCAPTCHA and the Google {privacyPolicy} and {termsOfService} apply.',
+    'Reject submission on CAPTCHA failure' => 'Reject submission on CAPTCHA failure',
+    'When on, a failed CAPTCHA shows an error and rejects the submission. When off (default), the submission is filed silently as spam — kept only if “Save spam submissions” is on.' => 'When on, a failed CAPTCHA shows an error and rejects the submission. When off (default), the submission is filed silently as spam — kept only if “Save spam submissions” is on.',
 ];

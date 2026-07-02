@@ -674,4 +674,6 @@ return [
     'reCAPTCHA v3 score threshold' => 'Umbral de puntuación de reCAPTCHA v3',
     'Terms of Service' => 'Términos del Servicio',
     'This site is protected by reCAPTCHA and the Google {privacyPolicy} and {termsOfService} apply.' => 'Este sitio está protegido por reCAPTCHA y se aplican la {privacyPolicy} y los {termsOfService} de Google.',
+    'Reject submission on CAPTCHA failure' => 'Rechazar el envío si falla el CAPTCHA',
+    'When on, a failed CAPTCHA shows an error and rejects the submission. When off (default), the submission is filed silently as spam — kept only if “Save spam submissions” is on.' => 'Si está activado, un CAPTCHA fallido muestra un error y rechaza el envío. Si está desactivado (predeterminado), el envío se archiva silenciosamente como spam y solo se conserva si «Guardar los envíos de spam» está activado.',
 ];

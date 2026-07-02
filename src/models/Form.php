@@ -125,6 +125,12 @@ class Form extends Model
     public ?float $captchaScoreThreshold = null;
 
     /**
+     * @var bool Hard-reject a submission when its CAPTCHA fails (showing an
+     * error), instead of the default: silently filing it as spam.
+     */
+    public bool $rejectOnCaptchaFail = false;
+
+    /**
      * @var bool Whether to pre-fill fields from URL query params on the front end
      */
     public bool $allowUrlPrefill = false;
@@ -209,6 +215,7 @@ class Form extends Model
             'saveSpamSubmissions' => Craft::t('easy-form', 'Save Spam Submissions'),
             'captchaProvider' => Craft::t('easy-form', 'CAPTCHA Provider'),
             'captchaScoreThreshold' => Craft::t('easy-form', 'Score Threshold'),
+            'rejectOnCaptchaFail' => Craft::t('easy-form', 'Reject submission on CAPTCHA failure'),
         ];
     }
 
@@ -236,6 +243,7 @@ class Form extends Model
             ['captchaProvider', 'string', 'max' => 64],
             ['captchaProvider', 'validateCaptchaProvider'],
             ['captchaScoreThreshold', 'number', 'min' => 0, 'max' => 1],
+            ['rejectOnCaptchaFail', 'boolean'],
             ['fieldLayout', 'validateFieldLayout'],
             ['notificationSettings', 'validateNotificationSettings'],
         ];

@@ -307,6 +307,13 @@
                     placeholder: efDefaultThreshold
                 }) }}
             {% endif %}
+            {{ forms.lightswitchField({
+                label: 'Reject submission on CAPTCHA failure'|t('easy-form'),
+                instructions: 'When on, a failed CAPTCHA shows an error and rejects the submission. When off (default), the submission is filed silently as spam — kept only if “Save spam submissions” is on.'|t('easy-form'),
+                id: 'rejectOnCaptchaFail',
+                name: 'rejectOnCaptchaFail',
+                on: form.rejectOnCaptchaFail
+            }) }}
         {% else %}
             <div class="field">
                 <div class="heading"><label>{{ 'CAPTCHA'|t('easy-form') }}</label></div>
