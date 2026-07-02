@@ -54,4 +54,40 @@ final class CaptchaProviderTest extends TestCase
         // treated as score 0 and rejected — this is what the e2e v3 form relies on.
         $this->assertFalse($provider->passesScore(['success' => true]));
     }
+
+    public function testV3RecordsLastScore(): void
+    {
+        $s = new Settings();
+        $s->recaptchaV3ScoreThreshold = 0.5;
+        $provider = new RecaptchaV3Provider($s);
+
+        // Score is recorded whether the gate passes or blocks.
+        $provider->passesScore(['success' => true, 'score' => 0.9]);
+        $this->assertSame(0.9, $provider->getLastScore());
+
+        $provider->passesScore(['success' => true, 'score' => 0.3]);
+        $this->assertSame(0.3, $provider->getLastScore());
+
+        // No score available (hard failure) or fail-open => null.
+        $provider->passesScore(['success' => false]);
+        $this->assertNull($provider->getLastScore());
+
+        $provider->passesScore(['success' => true, '_failOpen' => true]);
+        $this->assertNull($provider->getLastScore());
+    }
+
+    public function testV3PerFormThresholdOverride(): void
+    {
+        $s = new Settings();
+        $s->recaptchaV3ScoreThreshold = 0.5; // global
+        $provider = new RecaptchaV3Provider($s);
+
+        // Explicit (per-form) threshold overrides the global one.
+        $this->assertFalse($provider->passesScore(['success' => true, 'score' => 0.7], 0.9));
+        $this->assertTrue($provider->passesScore(['success' => true, 'score' => 0.4], 0.3));
+
+        // Null threshold falls back to the global setting.
+        $this->assertTrue($provider->passesScore(['success' => true, 'score' => 0.7], null));
+        $this->assertFalse($provider->passesScore(['success' => true, 'score' => 0.4], null));
+    }
 }

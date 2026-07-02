@@ -100,6 +100,8 @@ class Install extends Migration
             'saveSpamSubmissions' => $this->boolean()->defaultValue(false)->notNull(),
             'autoApprove' => $this->boolean()->defaultValue(true)->notNull(),
             'captchaProvider' => $this->string(64),
+            'captchaScoreThreshold' => $this->decimal(3, 2),
+            'rejectOnCaptchaFail' => $this->boolean()->defaultValue(false)->notNull(),
 
             // Behavior flags
             'allowUrlPrefill' => $this->boolean()->defaultValue(false)->notNull(),
@@ -154,7 +156,9 @@ class Install extends Migration
                 ->defaultValue('pending')
                 ->notNull(),
             'spamScore' => $this->decimal(3, 2),
+            'captchaScore' => $this->decimal(3, 2),
             'honeypotValue' => $this->string(255),
+            'spamReason' => $this->string(64),
             'isTest' => $this->boolean()->defaultValue(false)->notNull(),
 
             // Craft standard + soft delete

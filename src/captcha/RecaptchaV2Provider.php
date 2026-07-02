@@ -45,7 +45,7 @@ class RecaptchaV2Provider extends BaseCaptchaProvider
         return $script . $widget;
     }
 
-    public function verify(?string $token, ?string $ip = null): bool
+    public function verify(?string $token, ?string $ip = null, array $context = []): bool
     {
         $result = $this->siteVerify(self::VERIFY_URL, $this->settings->resolve($this->settings->recaptchaV2Secret), $token, $ip);
         return (bool) ($result['success'] ?? false);

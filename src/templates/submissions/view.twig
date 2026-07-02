@@ -169,6 +169,22 @@
                         <dd><code class="ef-chip">{{ submission.ipAddress }}</code></dd>
                     {% endif %}
 
+                    {% if submission.captchaScore is not null %}
+                        <dt>{{ 'CAPTCHA Score'|t('easy-form') }}</dt>
+                        <dd><code class="ef-chip">{{ submission.captchaScore }}</code></dd>
+                    {% endif %}
+
+                    {% if submission.spamReason %}
+                        {% set spamReasonLabels = {
+                            'honeypot filled': 'Honeypot filled'|t('easy-form'),
+                            'blocked email domain': 'Blocked email domain'|t('easy-form'),
+                            'blocked keyword': 'Blocked keyword'|t('easy-form'),
+                            'captcha failed': 'CAPTCHA failed'|t('easy-form')
+                        } %}
+                        <dt>{{ 'Spam Reason'|t('easy-form') }}</dt>
+                        <dd><code class="ef-chip">{{ spamReasonLabels[submission.spamReason] ?? submission.spamReason }}</code></dd>
+                    {% endif %}
+
                     <dt>{{ 'Submitter'|t('easy-form') }}</dt>
                     <dd>
                         {% if submission.userId %}

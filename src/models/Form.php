@@ -119,6 +119,18 @@ class Form extends Model
     public ?string $captchaProvider = null;
 
     /**
+     * @var float|null Per-form reCAPTCHA v3 score threshold override (0–1).
+     * Null falls back to the global setting.
+     */
+    public ?float $captchaScoreThreshold = null;
+
+    /**
+     * @var bool Hard-reject a submission when its CAPTCHA fails (showing an
+     * error), instead of the default: silently filing it as spam.
+     */
+    public bool $rejectOnCaptchaFail = false;
+
+    /**
      * @var bool Whether to pre-fill fields from URL query params on the front end
      */
     public bool $allowUrlPrefill = false;
@@ -202,6 +214,8 @@ class Form extends Model
             'maxSubmissionsPerUser' => Craft::t('easy-form', 'Max Submissions Per User'),
             'saveSpamSubmissions' => Craft::t('easy-form', 'Save Spam Submissions'),
             'captchaProvider' => Craft::t('easy-form', 'CAPTCHA Provider'),
+            'captchaScoreThreshold' => Craft::t('easy-form', 'Score Threshold'),
+            'rejectOnCaptchaFail' => Craft::t('easy-form', 'Reject submission on CAPTCHA failure'),
         ];
     }
 
@@ -228,6 +242,8 @@ class Form extends Model
             [['enabled', 'hideFormOnSuccess', 'keepSuccessMessage', 'saveSpamSubmissions', 'autoApprove'], 'boolean'],
             ['captchaProvider', 'string', 'max' => 64],
             ['captchaProvider', 'validateCaptchaProvider'],
+            ['captchaScoreThreshold', 'number', 'min' => 0, 'max' => 1],
+            ['rejectOnCaptchaFail', 'boolean'],
             ['fieldLayout', 'validateFieldLayout'],
             ['notificationSettings', 'validateNotificationSettings'],
         ];

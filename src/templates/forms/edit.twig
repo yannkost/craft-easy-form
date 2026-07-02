@@ -295,6 +295,25 @@
                 value: form.captchaProvider,
                 options: captchaOptions
             }) }}
+            {% if captchaProviders['recaptchaV3'] is defined %}
+                {% set efDefaultThreshold = craft.app.plugins.getPlugin('easy-form').getSettings().recaptchaV3ScoreThreshold %}
+                {{ forms.textField({
+                    label: 'reCAPTCHA v3 score threshold'|t('easy-form'),
+                    instructions: 'Only applies when this form uses reCAPTCHA v3. Minimum score (0–1) required to accept a submission. Leave blank to use the global default ({default}).'|t('easy-form', { default: efDefaultThreshold }),
+                    id: 'captchaScoreThreshold',
+                    name: 'captchaScoreThreshold',
+                    value: form.captchaScoreThreshold,
+                    size: 6,
+                    placeholder: efDefaultThreshold
+                }) }}
+            {% endif %}
+            {{ forms.lightswitchField({
+                label: 'Reject submission on CAPTCHA failure'|t('easy-form'),
+                instructions: 'When on, a failed CAPTCHA shows an error and rejects the submission. When off (default), the submission is filed silently as spam — kept only if “Save spam submissions” is on.'|t('easy-form'),
+                id: 'rejectOnCaptchaFail',
+                name: 'rejectOnCaptchaFail',
+                on: form.rejectOnCaptchaFail
+            }) }}
         {% else %}
             <div class="field">
                 <div class="heading"><label>{{ 'CAPTCHA'|t('easy-form') }}</label></div>

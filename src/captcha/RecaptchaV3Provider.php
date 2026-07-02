@@ -2,6 +2,7 @@
 
 namespace yannkost\easyform\captcha;
 
+use Craft;
 use craft\helpers\Html;
 
 /**
@@ -46,21 +47,62 @@ class RecaptchaV3Provider extends BaseCaptchaProvider
             'name' => 'g-recaptcha-response',
             'class' => 'easy-form-recaptcha-token',
         ]);
-        return $script . $input;
-    }
 
-    public function verify(?string $token, ?string $ip = null): bool
-    {
-        $result = $this->siteVerify(self::VERIFY_URL, $this->settings->resolve($this->settings->recaptchaV3Secret), $token, $ip);
-        return $this->passesScore($result);
+        // 'inline' hides Google's floating badge and shows the required
+        // disclosure text instead — always visible and Terms-compliant.
+        $extra = '';
+        if ($this->settings->recaptchaV3Badge === 'inline') {
+            $extra = Html::tag('style', '.grecaptcha-badge{visibility:hidden !important;}')
+                . Html::tag('p', $this->disclosureHtml(), [
+                    'class' => 'easy-form-recaptcha-disclosure',
+                ]);
+        }
+
+        return $script . $input . $extra;
     }
 
     /**
-     * v3 returns a score in [0,1]; require it to meet the threshold.
-     * Exposed for unit testing the score gate without HTTP.
+     * The reCAPTCHA disclosure text (with links) that Google's Terms require
+     * when the floating badge is hidden. All parts are trusted (plugin strings
+     * + fixed Google URLs), so the markup is emitted as-is.
      */
-    public function passesScore(array $result): bool
+    private function disclosureHtml(): string
     {
+        $privacy = Html::a(Craft::t('easy-form', 'Privacy Policy'), 'https://policies.google.com/privacy', [
+            'target' => '_blank',
+            'rel' => 'noopener',
+        ]);
+        $terms = Html::a(Craft::t('easy-form', 'Terms of Service'), 'https://policies.google.com/terms', [
+            'target' => '_blank',
+            'rel' => 'noopener',
+        ]);
+
+        return Craft::t('easy-form', 'This site is protected by reCAPTCHA and the Google {privacyPolicy} and {termsOfService} apply.', [
+            'privacyPolicy' => $privacy,
+            'termsOfService' => $terms,
+        ]);
+    }
+
+    public function verify(?string $token, ?string $ip = null, array $context = []): bool
+    {
+        $result = $this->siteVerify(self::VERIFY_URL, $this->settings->resolve($this->settings->recaptchaV3Secret), $token, $ip);
+        $threshold = isset($context['scoreThreshold'])
+            ? (float) $context['scoreThreshold']
+            : (float) $this->settings->recaptchaV3ScoreThreshold;
+        return $this->passesScore($result, $threshold);
+    }
+
+    /**
+     * v3 returns a score in [0,1]; require it to meet the threshold. Records the
+     * score on the instance (see getLastScore()) so callers can log/store it.
+     * Exposed for unit testing the score gate without HTTP.
+     *
+     * @param float|null $threshold Effective threshold; falls back to the global
+     *                              setting when null.
+     */
+    public function passesScore(array $result, ?float $threshold = null): bool
+    {
+        $this->lastScore = null;
         if (empty($result['success'])) {
             return false;
         }
@@ -68,8 +110,9 @@ class RecaptchaV3Provider extends BaseCaptchaProvider
         if (!empty($result['_failOpen'])) {
             return true;
         }
-        $threshold = $this->settings->recaptchaV3ScoreThreshold;
+        $threshold ??= (float) $this->settings->recaptchaV3ScoreThreshold;
         $score = isset($result['score']) ? (float) $result['score'] : 0.0;
+        $this->lastScore = $score;
         return $score >= $threshold;
     }
 }

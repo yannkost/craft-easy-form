@@ -211,6 +211,16 @@
             name: 'recaptchaV3ScoreThreshold', type: 'number', step: '0.1', min: 0, max: 1,
             value: settings.recaptchaV3ScoreThreshold ?? 0.5, size: 5
         }) }}
+        {{ forms.selectField({
+            label: 'Branding'|t('easy-form'),
+            instructions: 'Google requires either its badge or a disclosure notice. “Inline notice” hides the floating badge and shows the required text near the submit button — recommended, since it is always visible regardless of theme or ad blockers.'|t('easy-form'),
+            name: 'recaptchaV3Badge',
+            value: settings.recaptchaV3Badge ?? 'inline',
+            options: [
+                { label: 'Inline notice (hide badge)'|t('easy-form'), value: 'inline' },
+                { label: 'Google floating badge'|t('easy-form'), value: 'badge' }
+            ]
+        }) }}
 
         <hr>
 

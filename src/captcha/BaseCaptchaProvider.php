@@ -13,6 +13,9 @@ use yannkost\easyform\models\Settings;
  */
 abstract class BaseCaptchaProvider implements CaptchaProviderInterface
 {
+    /** @var float|null Score from the most recent verify() (score-based providers only). */
+    protected ?float $lastScore = null;
+
     public function __construct(protected Settings $settings)
     {
     }
@@ -20,6 +23,11 @@ abstract class BaseCaptchaProvider implements CaptchaProviderInterface
     public function getTokenParam(): string
     {
         return 'g-recaptcha-response';
+    }
+
+    public function getLastScore(): ?float
+    {
+        return $this->lastScore;
     }
 
     /**
