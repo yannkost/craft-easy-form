@@ -13,7 +13,8 @@
   submission, shown as **CAPTCHA Score** in the control panel.
 - A per-form **Reject submission on CAPTCHA failure** toggle.
 - Submissions now record and display a **Spam Reason** (honeypot, blocked email
-  domain, blocked keyword, or CAPTCHA), shown on the submission detail.
+  domain, blocked keyword, or CAPTCHA), shown on the submission detail and
+  available as an optional column in submission exports.
 - Translations for all new control-panel strings across German, Dutch, French,
   Spanish, and Italian.
 

@@ -741,6 +741,7 @@ class Submissions extends Component
 
         $defs[] = ['key' => 'id', 'label' => Craft::t('easy-form', 'ID'), 'group' => 'meta', 'default' => false];
         $defs[] = ['key' => 'status', 'label' => Craft::t('easy-form', 'Status'), 'group' => 'meta', 'default' => false];
+        $defs[] = ['key' => 'spamReason', 'label' => Craft::t('easy-form', 'Spam Reason'), 'group' => 'meta', 'default' => false];
         $defs[] = ['key' => 'dateCreated', 'label' => Craft::t('easy-form', 'Date created'), 'group' => 'meta', 'default' => false];
         $defs[] = ['key' => 'ip', 'label' => Craft::t('easy-form', 'IP address'), 'group' => 'meta', 'default' => false];
         $defs[] = ['key' => 'extra', 'label' => Craft::t('easy-form', 'Other stored data (JSON)'), 'group' => 'meta', 'default' => false];
@@ -842,6 +843,7 @@ class Submissions extends Component
                 $meta = [
                     'id' => $row['id'] ?? '',
                     'status' => $row['status'] ?? '',
+                    'spamReason' => $row['spamReason'] ?? '',
                     'dateCreated' => $row['dateCreated'] ?? '',
                     'ip' => $row['ipAddress'] ?? '',
                 ];
