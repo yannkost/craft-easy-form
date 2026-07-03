@@ -115,10 +115,63 @@ class Settings extends Model
      * any per-field allow list.
      */
     public const BLOCKED_UPLOAD_EXTENSIONS = [
-        'php', 'php3', 'php4', 'php5', 'php7', 'phtml', 'phar', 'pht',
-        'exe', 'com', 'bat', 'cmd', 'sh', 'bash', 'cgi', 'pl', 'py',
-        'jsp', 'asp', 'aspx', 'htaccess', 'htm', 'html', 'shtml', 'svg',
+        // PHP (every executable variant, incl. php8/phps and PHAR archives)
+        'php', 'php3', 'php4', 'php5', 'php6', 'php7', 'php8', 'phps',
+        'phtml', 'phtm', 'phar', 'pht', 'pgif',
+        // Server-side scripts / handlers
+        'jsp', 'jspx', 'asp', 'aspx', 'asa', 'asax', 'ascx', 'ashx', 'asmx',
+        'cer', 'cgi', 'pl', 'py', 'rb',
+        // Shell / native executables
+        'exe', 'com', 'bat', 'cmd', 'sh', 'bash', 'ps1', 'hta',
+        // HTML / active markup (stored-XSS vectors when served from the origin)
+        'htm', 'html', 'xhtml', 'xht', 'shtml', 'mhtml', 'mht', 'svg', 'swf',
+        // Server config
+        'htaccess', 'htpasswd',
     ];
+
+    /**
+     * Explicit allowlist of settings that may be mass-assigned from a request.
+     * Keeps setAttributes() safe so the settings form can't be used to write
+     * arbitrary model internals.
+     *
+     * @return string[]
+     */
+    public function safeAttributes(): array
+    {
+        return [
+            'enableSpamProtectionByDefault',
+            'includeDefaultStyles',
+            'turnstileSiteKey',
+            'turnstileSecret',
+            'recaptchaV3SiteKey',
+            'recaptchaV3Secret',
+            'recaptchaV3ScoreThreshold',
+            'recaptchaV3Badge',
+            'recaptchaV2SiteKey',
+            'recaptchaV2Secret',
+            'defaultSuccessMessage',
+            'defaultNotificationEmail',
+            'submissionRetentionDays',
+            'uploadMode',
+            'uploadVolumeUid',
+            'uploadSubfolder',
+            'uploadFilesystemPath',
+            'uploadBaseUrl',
+            'uploadDateSubfolders',
+            'maxFileSize',
+            'maxTotalUploadSize',
+            'maxAttachmentSize',
+            'blockedEmailDomains',
+            'blockedKeywords',
+            'silentlyRejectBlocked',
+            'blockedSubmissionMessages',
+            'storeIpAddresses',
+            'ipStorageMode',
+            'captchaFailOpen',
+            'allowPrivateWebhookHosts',
+            'deleteUploadedFilesOnUninstall',
+        ];
+    }
 
     /**
      * Resolve a setting value, expanding any $ENV_VAR reference.

@@ -108,6 +108,10 @@
         }) }}
 
         <div class="ef-upload-filesystem" style="{{ (settings.uploadMode ?? 'asset') == 'filesystem' ? '' : 'display:none;' }}">
+            <blockquote class="note warning">
+                <p>{{ 'If the path is inside your web root, uploaded files may be directly reachable by anyone who knows or guesses the URL. Decide whether site visitors should be able to access these files — if not, block direct access (e.g. with an .htaccess rule or server config) or store uploads outside the web root.'|t('easy-form') }}</p>
+            </blockquote>
+
             {{ forms.textField({
                 label: 'Filesystem Path'|t('easy-form'),
                 instructions: 'Directory where uploads are written. Supports aliases, e.g. @webroot/form-uploads.'|t('easy-form'),
@@ -130,10 +134,6 @@
                 name: 'uploadDateSubfolders',
                 on: settings.uploadDateSubfolders ?? true
             }) }}
-
-            <blockquote class="note warning">
-                <p>{{ 'If the path is inside your web root, uploaded files may be directly reachable by anyone who knows or guesses the URL. Decide whether site visitors should be able to access these files — if not, block direct access (e.g. with an .htaccess rule or server config) or store uploads outside the web root.'|t('easy-form') }}</p>
-            </blockquote>
         </div>
 
         <div class="ef-upload-asset" style="{{ (settings.uploadMode ?? 'asset') == 'filesystem' ? 'display:none;' : '' }}">

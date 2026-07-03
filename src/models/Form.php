@@ -438,7 +438,8 @@ class Form extends Model
     public function getFieldLayoutArray(): array
     {
         if (is_string($this->fieldLayout)) {
-            return Json::decodeIfJson($this->fieldLayout);
+            $decoded = Json::decodeIfJson($this->fieldLayout);
+            return is_array($decoded) ? $decoded : [];
         }
         return $this->fieldLayout;
     }
@@ -452,7 +453,8 @@ class Form extends Model
             return [];
         }
         if (is_string($this->settings)) {
-            return Json::decodeIfJson($this->settings);
+            $decoded = Json::decodeIfJson($this->settings);
+            return is_array($decoded) ? $decoded : [];
         }
         return $this->settings;
     }
@@ -505,7 +507,8 @@ class Form extends Model
             return [];
         }
         if (is_string($this->notificationSettings)) {
-            return Json::decodeIfJson($this->notificationSettings);
+            $decoded = Json::decodeIfJson($this->notificationSettings);
+            return is_array($decoded) ? $decoded : [];
         }
         return $this->notificationSettings;
     }
@@ -519,7 +522,8 @@ class Form extends Model
             return [];
         }
         if (is_string($this->siteSuccessMessages)) {
-            return Json::decodeIfJson($this->siteSuccessMessages);
+            $decoded = Json::decodeIfJson($this->siteSuccessMessages);
+            return is_array($decoded) ? $decoded : [];
         }
         return $this->siteSuccessMessages;
     }
@@ -533,7 +537,8 @@ class Form extends Model
             return [];
         }
         if (is_string($this->siteErrorMessages)) {
-            return Json::decodeIfJson($this->siteErrorMessages);
+            $decoded = Json::decodeIfJson($this->siteErrorMessages);
+            return is_array($decoded) ? $decoded : [];
         }
         return $this->siteErrorMessages;
     }
@@ -547,7 +552,8 @@ class Form extends Model
             return [];
         }
         if (is_string($this->siteRedirectUrls)) {
-            return Json::decodeIfJson($this->siteRedirectUrls);
+            $decoded = Json::decodeIfJson($this->siteRedirectUrls);
+            return is_array($decoded) ? $decoded : [];
         }
         return $this->siteRedirectUrls;
     }
@@ -572,7 +578,8 @@ class Form extends Model
             return [];
         }
         if (is_string($this->siteSubmitButtonLabels)) {
-            return Json::decodeIfJson($this->siteSubmitButtonLabels) ?: [];
+            $decoded = Json::decodeIfJson($this->siteSubmitButtonLabels);
+            return is_array($decoded) ? $decoded : [];
         }
         return $this->siteSubmitButtonLabels;
     }

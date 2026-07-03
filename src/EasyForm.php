@@ -117,26 +117,30 @@ class EasyForm extends Plugin
                     return;
                 }
                 $submission = $event->submission;
+
+                // Skip spam for both notifications and webhooks — a saved spam
+                // submission must not email admins (or, worse, a {email} dynamic
+                // recipient the bot supplied) or fire outbound webhooks.
+                if ($submission->status === 'spam') {
+                    return;
+                }
+
                 try {
-                    Craft::$app->getQueue()->push(new SendNotificationJob([
-                        'submissionId' => $submission->id,
-                    ]));
+                    EasyForm::getInstance()->notifications->queueForSubmission($submission);
                 } catch (\Throwable $e) {
                     // Never let a queue failure break a saved submission.
                     EasyForm::log('Could not queue notification job for submission #' . $submission->id . ': ' . $e->getMessage(), 'error');
                 }
 
-                // Queue a webhook for non-spam submissions when the form has one.
-                if ($submission->status !== 'spam') {
-                    $form = EasyForm::getInstance()->forms->getFormById($submission->formId);
-                    if ($form && trim((string) $form->webhookUrl) !== '') {
-                        try {
-                            Craft::$app->getQueue()->push(new SendWebhookJob([
-                                'submissionId' => $submission->id,
-                            ]));
-                        } catch (\Throwable $e) {
-                            EasyForm::log('Could not queue webhook job for submission #' . $submission->id . ': ' . $e->getMessage(), 'error');
-                        }
+                // Queue a webhook when the form has one.
+                $form = EasyForm::getInstance()->forms->getFormById($submission->formId);
+                if ($form && trim((string) $form->webhookUrl) !== '') {
+                    try {
+                        Craft::$app->getQueue()->push(new SendWebhookJob([
+                            'submissionId' => $submission->id,
+                        ]));
+                    } catch (\Throwable $e) {
+                        EasyForm::log('Could not queue webhook job for submission #' . $submission->id . ': ' . $e->getMessage(), 'error');
                     }
                 }
             }

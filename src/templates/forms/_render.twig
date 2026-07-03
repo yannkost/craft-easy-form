@@ -45,6 +45,36 @@
     {% do view.registerAssetBundle('yannkost\\easyform\\assets\\FormStyleAsset') %}
 {% endif %}
 
+{# Default validation/UI messages in the current site language, read by
+   form-submit.js. Per-field custom messages still take precedence; {placeholders}
+   are filled client-side. #}
+{% set efMessages = {
+    required: 'This field is required'|t('easy-form'),
+    selectFile: 'Please select a file'|t('easy-form'),
+    selectOption: 'Please select at least one option'|t('easy-form'),
+    maxFiles: 'Please upload no more than {max} file(s)'|t('easy-form'),
+    fileSize: 'File "{name}" exceeds maximum size of {size}MB'|t('easy-form'),
+    totalSize: 'Combined upload size exceeds maximum of {max}MB'|t('easy-form'),
+    email: 'Please enter a valid email address'|t('easy-form'),
+    phone: 'Please enter a valid phone number'|t('easy-form'),
+    urlScheme: 'Please enter a URL starting with http:// or https://'|t('easy-form'),
+    url: 'Please enter a valid URL'|t('easy-form'),
+    minLength: 'Minimum {min} characters required'|t('easy-form'),
+    maxLength: 'Maximum {max} characters allowed'|t('easy-form'),
+    number: 'Please enter a valid number'|t('easy-form'),
+    wholeNumber: 'Please enter a whole number'|t('easy-form'),
+    decimals: 'Use no more than {max} decimal place(s)'|t('easy-form'),
+    minValue: 'Minimum value is {min}'|t('easy-form'),
+    maxValue: 'Maximum value is {max}'|t('easy-form'),
+    removeFile: 'Remove {name}'|t('easy-form'),
+    correctErrors: 'Please correct the errors below'|t('easy-form'),
+    captchaFailed: 'CAPTCHA failed to load. Please try again.'|t('easy-form'),
+    submitting: 'Submitting...'|t('easy-form'),
+    securityToken: 'Security token error. Please refresh the page.'|t('easy-form'),
+    genericError: 'An error occurred'|t('easy-form'),
+    unexpectedError: 'An unexpected error occurred. Please try again.'|t('easy-form'),
+} %}
+
 <form
     id="{{ formId }}"
     {# `easy-form` is always present; any custom `class` option is appended (not replaced). #}
@@ -54,6 +84,7 @@
     novalidate
     data-form-handle="{{ form.handle }}"
     data-site="{{ currentSite.handle }}"
+    data-ef-messages="{{ efMessages|json_encode }}"
     data-csrf-url="{{ actionUrl('easy-form/forms/get-csrf-token') }}"
     {% if easyFormDebugEnabled() %}data-ef-log-url="{{ actionUrl('easy-form/forms/log-client-error') }}"{% endif %}
     {% if captchaUsable %}data-ef-captcha="{{ form.captchaProvider }}" data-ef-captcha-sitekey="{{ captcha.getSiteKey() }}"{% endif %}
@@ -150,7 +181,7 @@
     
     {# CAPTCHA widget #}
     {% if captchaUsable %}
-        <div class="easy-form-captcha"{% if isMultiPage %} data-captcha-last-page="true"{% endif %}>
+        <div class="easy-form-captcha">
             {{ captcha.renderWidget(formId)|raw }}
         </div>
     {% endif %}

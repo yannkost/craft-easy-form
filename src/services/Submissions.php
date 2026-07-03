@@ -531,6 +531,12 @@ class Submissions extends Component
         $column = array_search($handle, $promotedMap, true);
         if (in_array($column, ['primaryEmail', 'searchCol1', 'searchCol2', 'searchCol3'], true)) {
             $query->andWhere([$column => $value]);
+        } elseif (Craft::$app->getDb()->getIsPgsql()) {
+            // Postgres: extract the JSON value as text with #>>.
+            $query->andWhere(new \yii\db\Expression(
+                "[[data]]::jsonb #>> :path = :val",
+                [':path' => '{values,' . $handle . '}', ':val' => $value]
+            ));
         } else {
             $query->andWhere(new \yii\db\Expression(
                 'JSON_UNQUOTE(JSON_EXTRACT([[data]], :path)) = :val',
@@ -834,6 +840,9 @@ class Submissions extends Component
         }
 
         $out = fopen('php://temp/maxmemory:' . (8 * 1024 * 1024), 'r+');
+        // UTF-8 BOM so Excel on Windows reads accented/non-Latin data as UTF-8
+        // rather than the local ANSI codepage (otherwise: mojibake).
+        fwrite($out, "\xEF\xBB\xBF");
         // Sanitize headers too — field labels are admin-controlled.
         $this->putCsvRow($out, array_column($active, 'label'));
 

@@ -257,15 +257,29 @@ import { siteEnableBlock } from './modules/site-enable.js';
     function setupFormNameHandleGeneration() {
         const nameInput = document.getElementById('name');
         const handleInput = document.getElementById('handle');
-        
-        if (nameInput && handleInput) {
-            nameInput.addEventListener('input', function() {
-                const handle = this.value
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, '_')
-                    .replace(/^_+|_+$/g, '');
-                handleInput.value = handle;
-            });
+
+        if (!nameInput || !handleInput) {
+            return;
         }
+
+        // Only auto-generate for a brand-new form (empty handle at load). Editing
+        // an existing form's name must never rewrite its handle — that silently
+        // breaks every easyForm('handle') template reference. Also stop once the
+        // user edits the handle by hand, mirroring Craft's HandleGenerator.
+        let autoUpdate = handleInput.value.trim() === '';
+
+        handleInput.addEventListener('input', function() {
+            autoUpdate = false;
+        });
+
+        nameInput.addEventListener('input', function() {
+            if (!autoUpdate) {
+                return;
+            }
+            handleInput.value = this.value
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '');
+        });
     }
 })();

@@ -18,6 +18,9 @@ class RecaptchaV3Provider extends BaseCaptchaProvider
 {
     private const VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
 
+    /** The action the frontend requests via grecaptcha.execute(); must match on verify. */
+    private const EXPECTED_ACTION = 'submit';
+
     public static function handle(): string
     {
         return 'recaptchaV3';
@@ -109,6 +112,12 @@ class RecaptchaV3Provider extends BaseCaptchaProvider
         // Transport fail-open: allow without a score.
         if (!empty($result['_failOpen'])) {
             return true;
+        }
+        // Reject a token minted for a different action (anti-replay). Only
+        // enforced when Google returned an action, so fail-open/legacy results
+        // still pass.
+        if (isset($result['action']) && $result['action'] !== self::EXPECTED_ACTION) {
+            return false;
         }
         $threshold ??= (float) $this->settings->recaptchaV3ScoreThreshold;
         $score = isset($result['score']) ? (float) $result['score'] : 0.0;

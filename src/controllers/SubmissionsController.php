@@ -48,6 +48,9 @@ class SubmissionsController extends Controller
             'export', 'export-columns', 'export-status', 'export-check', 'export-download' => 'easy-form:exportSubmissions',
             'delete' => 'easy-form:deleteSubmissions',
             'edit', 'save-edit' => 'easy-form:editSubmissions',
+            // Manually (re)sending a notification can forward a submission's full
+            // contents to an arbitrary address, so it needs edit — not view — rights.
+            'send-notification' => 'easy-form:editSubmissions',
             default => 'easy-form:viewSubmissions',
         });
         return true;
@@ -738,6 +741,10 @@ class SubmissionsController extends Controller
                     'hideForm' => $form->hideFormOnSuccess,
                     'keepMessage' => $form->keepSuccessMessage,
                     'messageDuration' => $form->successMessageDuration,
+                    // Emit a throwaway id so the response is byte-for-byte shaped
+                    // like a genuine success; without it a bot could detect that
+                    // its submission was silently classified as spam.
+                    'submissionId' => random_int(100000, 9999999),
                 ]);
             }
             if ($redirectUrl) {

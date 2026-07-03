@@ -108,9 +108,14 @@ class SettingsController extends Controller
     public function actionSave()
     {
         $this->requirePostRequest();
-        
+        // Plugin settings are security-relevant (upload paths, SSRF guard,
+        // captcha fail-open); restrict to admins and honor allowAdminChanges.
+        $this->requireAdmin();
+
         $settings = EasyForm::getInstance()->getSettings();
-        $settings->setAttributes(Craft::$app->request->getBodyParams(), false);
+        // Safe assignment against the model's safeAttributes() allowlist so only
+        // intended settings are mass-assignable.
+        $settings->setAttributes(Craft::$app->request->getBodyParams());
         
         try {
             if (!Craft::$app->plugins->savePluginSettings(EasyForm::getInstance(), $settings->toArray())) {

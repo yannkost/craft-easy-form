@@ -295,6 +295,36 @@
             });
         }
 
+        // Enter in a single-line field on a non-final page should advance the
+        // step, not submit the whole form — otherwise Enter POSTs an incomplete
+        // multi-page form from page 1 (client validation skips hidden pages).
+        form.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            const tag = (e.target.tagName || '').toLowerCase();
+            if (tag === 'textarea' || tag === 'button' || tag === 'a') return;
+            if (currentPage < pages.length - 1) {
+                e.preventDefault();
+                if (nextBtn) {
+                    nextBtn.click();
+                } else {
+                    showPage(currentPage + 1);
+                }
+            }
+        });
+
+        // Exposed so the server-error handler can reveal the page that holds the
+        // first invalid field (errors otherwise land on a hidden page with no way
+        // to reach them).
+        form._easyFormGoToFieldPage = (input) => {
+            if (!input) return;
+            const page = input.closest('.easy-form-page');
+            if (!page) return;
+            const index = Array.prototype.indexOf.call(pages, page);
+            if (index >= 0 && index !== currentPage) {
+                showPage(index);
+            }
+        };
+
         // Initial state
         showPage(0);
 
@@ -427,6 +457,63 @@
         url: /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
     };
 
+    // Default validation/UI messages (English). A form can override these per
+    // site language via a JSON `data-ef-messages` attribute (emitted by the
+    // template through |t('easy-form')); per-field data-*-message attributes
+    // still take precedence over both. {placeholders} are filled at call time.
+    const DEFAULT_MESSAGES = {
+        required: 'This field is required',
+        selectFile: 'Please select a file',
+        selectOption: 'Please select at least one option',
+        maxFiles: 'Please upload no more than {max} file(s)',
+        fileSize: 'File "{name}" exceeds maximum size of {size}MB',
+        totalSize: 'Combined upload size exceeds maximum of {max}MB',
+        email: 'Please enter a valid email address',
+        phone: 'Please enter a valid phone number',
+        urlScheme: 'Please enter a URL starting with http:// or https://',
+        url: 'Please enter a valid URL',
+        minLength: 'Minimum {min} characters required',
+        maxLength: 'Maximum {max} characters allowed',
+        number: 'Please enter a valid number',
+        wholeNumber: 'Please enter a whole number',
+        decimals: 'Use no more than {max} decimal place(s)',
+        minValue: 'Minimum value is {min}',
+        maxValue: 'Maximum value is {max}',
+        removeFile: 'Remove {name}',
+        correctErrors: 'Please correct the errors below',
+        captchaFailed: 'CAPTCHA failed to load. Please try again.',
+        submitting: 'Submitting...',
+        securityToken: 'Security token error. Please refresh the page.',
+        genericError: 'An error occurred',
+        unexpectedError: 'An unexpected error occurred. Please try again.'
+    };
+
+    function efMessages(form) {
+        if (!form) return DEFAULT_MESSAGES;
+        if (form._efMessages) return form._efMessages;
+        let custom = {};
+        try {
+            if (form.dataset.efMessages) {
+                custom = JSON.parse(form.dataset.efMessages);
+            }
+        } catch (e) {
+            // Malformed map — fall back to the English defaults.
+        }
+        form._efMessages = Object.assign({}, DEFAULT_MESSAGES, custom);
+        return form._efMessages;
+    }
+
+    // Resolve a message for a form's language, substituting {placeholders}.
+    function efMsg(form, key, params) {
+        const template = efMessages(form)[key] || DEFAULT_MESSAGES[key] || '';
+        if (!params) {
+            return template;
+        }
+        return template.replace(/\{(\w+)\}/g, function(_, k) {
+            return params[k] !== undefined ? params[k] : '{' + k + '}';
+        });
+    }
+
     /**
      * Wire up file fields so the user sees the selected files as a removable list.
      * Each entry has an ✕ button that drops just that file (rebuilding the input's
@@ -479,7 +566,7 @@
                     const remove = document.createElement('button');
                     remove.type = 'button';
                     remove.className = 'ef-file-remove';
-                    remove.setAttribute('aria-label', 'Remove ' + file.name);
+                    remove.setAttribute('aria-label', efMsg(input.form, 'removeFile', { name: file.name }));
                     remove.textContent = '✕';
                     remove.addEventListener('click', function() {
                         const kept = Array.from(input.files || []).filter((_, i) => i !== index);
@@ -529,7 +616,7 @@
             if (isRequired && (!field.files || field.files.length === 0)) {
                 return { 
                     valid: false, 
-                    message: field.dataset.requiredMessage || 'Please select a file' 
+                    message: field.dataset.requiredMessage || efMsg(field.form, 'selectFile')
                 };
             }
             
@@ -539,7 +626,7 @@
                 if (maxFiles > 0 && field.files.length > maxFiles) {
                     return {
                         valid: false,
-                        message: `Please upload no more than ${maxFiles} file(s)`
+                        message: efMsg(field.form, 'maxFiles', { max: maxFiles })
                     };
                 }
             }
@@ -552,7 +639,7 @@
                         return {
                             valid: false,
                             message: field.dataset.fileSizeMessage
-                                || `File "${field.files[i].name}" exceeds maximum size of ${field.dataset.maxFileSize}MB`
+                                || efMsg(field.form, 'fileSize', { name: field.files[i].name, size: field.dataset.maxFileSize })
                         };
                     }
                 }
@@ -567,7 +654,7 @@
                     if (total > maxTotal * 1024 * 1024) {
                         return {
                             valid: false,
-                            message: `Combined upload size exceeds maximum of ${maxTotal}MB`
+                            message: efMsg(field.form, 'totalSize', { max: maxTotal })
                         };
                     }
                 }
@@ -581,7 +668,7 @@
             if (isRequired && !field.checked) {
                 return {
                     valid: false,
-                    message: field.dataset.requiredMessage || 'This field is required'
+                    message: field.dataset.requiredMessage || efMsg(field.form, 'required')
                 };
             }
             return { valid: true };
@@ -598,7 +685,7 @@
                 if (!checked) {
                     return {
                         valid: false,
-                        message: field.dataset.requiredMessage || 'Please select at least one option'
+                        message: field.dataset.requiredMessage || efMsg(field.form, 'selectOption')
                     };
                 }
             }
@@ -616,7 +703,7 @@
         if (isRequired && !value) {
             return { 
                 valid: false, 
-                message: field.dataset.requiredMessage || 'This field is required' 
+                message: field.dataset.requiredMessage || efMsg(field.form, 'required') 
             };
         }
         
@@ -625,7 +712,7 @@
             if (!validationPatterns.email.test(value)) {
                 return {
                     valid: false,
-                    message: field.dataset.invalidMessage || 'Please enter a valid email address'
+                    message: field.dataset.invalidMessage || efMsg(field.form, 'email')
                 };
             }
         }
@@ -636,7 +723,7 @@
             if (!validationPatterns.phone.test(value) || digitCount < 6) {
                 return {
                     valid: false,
-                    message: 'Please enter a valid phone number'
+                    message: efMsg(field.form, 'phone')
                 };
             }
         }
@@ -651,8 +738,8 @@
                 return {
                     valid: false,
                     message: requireScheme
-                        ? 'Please enter a URL starting with http:// or https://'
-                        : 'Please enter a valid URL'
+                        ? efMsg(field.form, 'urlScheme')
+                        : efMsg(field.form, 'url')
                 };
             }
         }
@@ -664,14 +751,14 @@
         if (minLength && parseInt(minLength) > 0 && value.length < parseInt(minLength)) {
             return {
                 valid: false,
-                message: field.dataset.minlengthMessage || `Minimum ${minLength} characters required`
+                message: field.dataset.minlengthMessage || efMsg(field.form, 'minLength', { min: minLength })
             };
         }
 
         if (maxLength && parseInt(maxLength) > 0 && value.length > parseInt(maxLength)) {
             return {
                 valid: false,
-                message: field.dataset.maxlengthMessage || `Maximum ${maxLength} characters allowed`
+                message: field.dataset.maxlengthMessage || efMsg(field.form, 'maxLength', { max: maxLength })
             };
         }
         
@@ -682,7 +769,7 @@
             if (isNaN(numValue)) {
                 return { 
                     valid: false, 
-                    message: 'Please enter a valid number' 
+                    message: efMsg(field.form, 'number')
                 };
             }
             
@@ -695,8 +782,8 @@
                     return {
                         valid: false,
                         message: allowed === 0
-                            ? 'Please enter a whole number'
-                            : `Use no more than ${allowed} decimal place(s)`
+                            ? efMsg(field.form, 'wholeNumber')
+                            : efMsg(field.form, 'decimals', { max: allowed })
                     };
                 }
             }
@@ -707,14 +794,14 @@
             if (minValue !== null && numValue < parseFloat(minValue)) {
                 return {
                     valid: false,
-                    message: field.dataset.minMessage || `Minimum value is ${minValue}`
+                    message: field.dataset.minMessage || efMsg(field.form, 'minValue', { min: minValue })
                 };
             }
 
             if (maxValue !== null && numValue > parseFloat(maxValue)) {
                 return {
                     valid: false,
-                    message: field.dataset.maxMessage || `Maximum value is ${maxValue}`
+                    message: field.dataset.maxMessage || efMsg(field.form, 'maxValue', { max: maxValue })
                 };
             }
         }
@@ -833,7 +920,7 @@
                 });
                 // Focus on first error field
                 validationErrors[0].field.focus();
-                showMessage(form, 'Please correct the errors below', 'error');
+                showMessage(form, efMsg(form, 'correctErrors'), 'error');
                 return;
             }
         }
@@ -874,7 +961,7 @@
         } catch (err) {
             console.error('CAPTCHA error:', err);
             reportClientError(form, 'captcha', err);
-            showMessage(form, 'CAPTCHA failed to load. Please try again.', 'error');
+            showMessage(form, efMsg(form, 'captchaFailed'), 'error');
             return;
         }
 
@@ -882,7 +969,7 @@
         if (submitButton) {
             submitButton.disabled = true;
             submitButton.dataset.originalText = submitButton.textContent;
-            submitButton.textContent = 'Submitting...';
+            submitButton.textContent = efMsg(form, 'submitting');
         }
         
         // Get fresh CSRF token from backend
@@ -915,7 +1002,7 @@
         } catch (error) {
             console.error('Failed to fetch CSRF token:', error);
             reportClientError(form, 'csrf', error);
-            showMessage(form, 'Security token error. Please refresh the page.', 'error');
+            showMessage(form, efMsg(form, 'securityToken'), 'error');
             if (submitButton) {
                 submitButton.disabled = false;
                 submitButton.textContent = submitButton.dataset.originalText;
@@ -986,7 +1073,7 @@
             } else {
                 emit(form, 'error', { response: result });
                 // Show error message
-                showMessage(form, result.error || 'An error occurred', 'error');
+                showMessage(form, result.error || efMsg(form, 'genericError'), 'error');
 
                 // Show field-specific errors if available
                 if (result.errors) {
@@ -997,7 +1084,7 @@
             console.error('Form submission error:', error);
             reportClientError(form, 'submit', error);
             emit(form, 'error', { error: error });
-            showMessage(form, 'An unexpected error occurred. Please try again.', 'error');
+            showMessage(form, efMsg(form, 'unexpectedError'), 'error');
         } finally {
             // Re-enable submit button
             if (submitButton) {
@@ -1072,9 +1159,13 @@
 
     // Show field-specific errors
     function showFieldErrors(form, errors) {
+        let firstErroredInput = null;
         Object.keys(errors).forEach(fieldName => {
             const input = form.querySelector(`[name="fields[${fieldName}]"]`) || form.querySelector(`[name="fields[${fieldName}][]"]`);
             if (input) {
+                if (!firstErroredInput) {
+                    firstErroredInput = input;
+                }
                 const fieldWrapper = input.closest('.easy-form-field');
                 if (fieldWrapper) {
                     fieldWrapper.classList.add('has-error');
@@ -1088,6 +1179,12 @@
                 }
             }
         });
+
+        // On a multi-page form the first error may be on a hidden step; reveal it
+        // so the user can see and fix it instead of a dead-end generic banner.
+        if (firstErroredInput && typeof form._easyFormGoToFieldPage === 'function') {
+            form._easyFormGoToFieldPage(firstErroredInput);
+        }
     }
 
     // Initialize on DOM ready

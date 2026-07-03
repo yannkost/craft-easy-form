@@ -4,6 +4,7 @@ namespace yannkost\easyform\services;
 
 use cebe\markdown\GithubMarkdown;
 use Craft;
+use craft\helpers\App;
 use craft\helpers\Json;
 use craft\mail\Message;
 use craft\web\View;
@@ -79,6 +80,53 @@ class Notifications extends Component
     }
 
     /**
+     * Queues one job per applicable notification for a submission.
+     *
+     * Pushing a job per notification (rather than one job that loops them all)
+     * means a transient failure on one notification retries only that one — a
+     * whole-batch retry would re-send every notification that already succeeded.
+     * Enabled/per-site/condition gating is evaluated here so no-op jobs aren't
+     * queued; the submission data is immutable, so the result won't change by
+     * the time the job runs.
+     */
+    public function queueForSubmission(Submission $submission): void
+    {
+        $form = $submission->getForm();
+        if (!$form || empty($form->notificationSettings)) {
+            return;
+        }
+
+        $settings = $form->getNotificationSettingsArray();
+        if (isset($settings['recipients'])) {
+            $settings = [$settings];
+        }
+
+        $data = $submission->getFlatValues();
+
+        $siteHandle = null;
+        if ($submission->siteId) {
+            $siteHandle = Craft::$app->sites->getSiteById($submission->siteId)?->handle;
+        }
+
+        foreach ($settings as $index => $notification) {
+            if (empty($notification['enabled'])) {
+                continue;
+            }
+            if ($siteHandle !== null && empty($notification['siteEnabled'][$siteHandle] ?? '1')) {
+                continue;
+            }
+            if (!$this->shouldSend($notification, $data, $siteHandle)) {
+                continue;
+            }
+
+            Craft::$app->getQueue()->push(new \yannkost\easyform\jobs\SendNotificationJob([
+                'submissionId' => $submission->id,
+                'notificationIndex' => (int) $index,
+            ]));
+        }
+    }
+
+    /**
      * Sends a specific notification by index
      *
      * @param Submission $submission
@@ -90,18 +138,22 @@ class Notifications extends Component
     {
         $form = $submission->getForm();
         if (!$form || empty($form->notificationSettings)) {
-            return false;
+            // Nothing to send — a permanent no-op, not a transient failure, so
+            // the queue must not retry it.
+            EasyForm::debug("No notification settings for form {$submission->formId}; skipping notification #{$notificationIndex}.");
+            return true;
         }
 
         $settings = $form->getNotificationSettingsArray();
-        
+
         // Normalize
         if (isset($settings['recipients'])) {
             $settings = [$settings];
         }
 
         if (!isset($settings[$notificationIndex])) {
-            return false;
+            EasyForm::log("Notification #{$notificationIndex} no longer exists for form {$form->id}; skipping.", 'warning');
+            return true;
         }
 
         $notification = $settings[$notificationIndex];
@@ -391,10 +443,12 @@ class Notifications extends Component
             $message->setSubject($notification['subject'] ?? 'New form submission');
             $message->setHtmlBody($htmlBody);
             
-            // Set Sender
-            $fromEmail = !empty($notification['senderEmail']) ? $notification['senderEmail'] : Craft::$app->systemSettings->getEmailSettings()->fromEmail;
-            $fromName = !empty($notification['senderName']) ? $notification['senderName'] : Craft::$app->systemSettings->getEmailSettings()->fromName;
-            
+            // Set Sender — fall back to the system mail settings (Craft 5 has no
+            // systemSettings component; use App::mailSettings()).
+            $mailSettings = App::mailSettings();
+            $fromEmail = !empty($notification['senderEmail']) ? $notification['senderEmail'] : App::parseEnv($mailSettings->fromEmail);
+            $fromName = !empty($notification['senderName']) ? $notification['senderName'] : App::parseEnv($mailSettings->fromName);
+
             if (!$fromEmail) {
                 EasyForm::log("No sender email configured in form settings or system settings", 'error');
                 return false;
@@ -402,9 +456,16 @@ class Notifications extends Component
 
             $message->setFrom([$fromEmail => $fromName]);
 
-            // Set Reply-To
+            // Set Reply-To — validate/resolve like recipients so a placeholder
+            // (e.g. {email}) or a typo can't throw at send time and permanently
+            // fail every notification for this form.
             if (!empty($notification['replyTo'])) {
-                $message->setReplyTo($notification['replyTo']);
+                $replyTo = $this->parseEmailList($notification['replyTo'], $submission);
+                if (!empty($replyTo)) {
+                    $message->setReplyTo($replyTo);
+                } else {
+                    EasyForm::log("Reply-To '{$notification['replyTo']}' resolved to no valid address; skipping.", 'warning');
+                }
             }
 
             // CC / BCC (comma-separated, with {handle} dynamic support).
