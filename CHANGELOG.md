@@ -1,6 +1,6 @@
 # Release Notes for Easy Form
 
-## 1.1.0 - 2026-07-02
+## 1.1.0 - 2026-07-03
 
 ### Added
 
