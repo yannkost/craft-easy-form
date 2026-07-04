@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M6 9h20"/>
-  <path d="M6 15h13"/>
-  <path d="M6 23l4 4 9-11"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <path fill-rule="evenodd" d="M9 2h14a7 7 0 0 1 7 7v14a7 7 0 0 1-7 7H9a7 7 0 0 1-7-7V9a7 7 0 0 1 7-7Zm0 3a4 4 0 0 0-4 4v14a4 4 0 0 0 4 4h14a4 4 0 0 0 4-4V9a4 4 0 0 0-4-4Z"/>
+  <rect x="8.5" y="10.3" width="15" height="2.4" rx="1.2"/>
+  <rect x="8.5" y="14.8" width="9" height="2.4" rx="1.2"/>
+  <path d="M8.04 20.67 11.84 24.87 13.81 24.81 22.01 14.61 19.99 12.99 12.7 22.6 9.97 18.93Z"/>
 </svg>
