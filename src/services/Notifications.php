@@ -374,6 +374,8 @@ class Notifications extends Component
             'data' => $data,
         ];
 
+        // Tracks the current phase so a failure log can say exactly where it broke.
+        $step = 'preparing the message';
         try {
             // Determine template path
             $template = $notification['template'] ?? '';
@@ -407,6 +409,7 @@ class Notifications extends Component
                 }
             }
 
+            $step = 'rendering the email body';
             $actualTemplate = 'Default'; // Default value for logging
             $htmlBody = '';
 
@@ -438,6 +441,7 @@ class Notifications extends Component
                 $htmlBody = $this->renderDefaultEmail($variables);
             }
 
+            $step = 'building the message (subject, sender, reply-to, CC/BCC, attachments)';
             // Create Message
             $message = new Message();
             $message->setSubject($notification['subject'] ?? 'New form submission');
@@ -486,8 +490,9 @@ class Notifications extends Component
             $sentCount = 0;
             // Send to all parsed recipients
             foreach ($parsedRecipients as $email) {
+                $step = "sending to {$email}";
                 $message->setTo($email);
-                
+
                 $logDetails = sprintf(
                     "Subject: %s, To: %s, From: %s, Reply-To: %s, Template: %s",
                     $notification['subject'] ?? 'New form submission',
@@ -508,8 +513,26 @@ class Notifications extends Component
             return $sentCount > 0;
 
         } catch (\Throwable $e) {
-            EasyForm::log("Failed to send notification '{$notification['name']}' for submission {$submission->id}: " . $e->getMessage(), 'error');
+            EasyForm::log(
+                "Failed to send notification '" . ($notification['name'] ?? 'unnamed') . "'"
+                    . " for submission {$submission->id} while {$step}: " . $e->getMessage(),
+                'error'
+            );
             return false;
+        }
+    }
+
+    /**
+     * getDisplayValue() wrapped so a rendering failure names the offending field.
+     * Surfaced in the "… while rendering the email body" log so you know exactly
+     * which field broke the notification.
+     */
+    private function getDisplayValueForField(string $handle, mixed $value, ?array $field, ?string $siteHandle): string
+    {
+        try {
+            return $this->getDisplayValue($value, $field, $siteHandle);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException("field '{$handle}': " . $e->getMessage(), 0, $e);
         }
     }
 
@@ -551,7 +574,7 @@ class Notifications extends Component
             $handle = $matches[1];
             $val = $submission->getFieldValue($handle);
             $field = $form->getAnyFieldByHandle($handle);
-            return $fmt($this->getDisplayValue($val, $field, $siteHandle), $isBold($matches));
+            return $fmt($this->getDisplayValueForField($handle, $val, $field, $siteHandle), $isBold($matches));
         }, $content);
 
         // {label[handle]} / {label[handle]|b} — site-aware label.
@@ -566,7 +589,7 @@ class Notifications extends Component
             if (!$field) return $matches[0];
 
             $label = $fmt($form->resolveFieldLabel($handle, $siteHandle), $isBold($matches));
-            $valueStr = $fmt($this->getDisplayValue($submission->getFieldValue($handle), $field, $siteHandle), false);
+            $valueStr = $fmt($this->getDisplayValueForField($handle, $submission->getFieldValue($handle), $field, $siteHandle), false);
 
             return "{$label}<br>{$valueStr}<br>";
         }, $content);
@@ -580,7 +603,7 @@ class Notifications extends Component
             $bold = $isBold($matches);
             $label = htmlspecialchars($form->resolveFieldLabel($handle, $siteHandle), ENT_QUOTES, 'UTF-8');
             $labelHtml = $bold ? "<strong>{$label}:</strong>" : "{$label}:";
-            $valueStr = $fmt($this->getDisplayValue($submission->getFieldValue($handle), $field, $siteHandle), false);
+            $valueStr = $fmt($this->getDisplayValueForField($handle, $submission->getFieldValue($handle), $field, $siteHandle), false);
 
             return "{$labelHtml} {$valueStr}<br>";
         }, $content);
@@ -672,7 +695,7 @@ class Notifications extends Component
             }
             $label = htmlspecialchars($form->resolveFieldLabel($handle, $siteHandle), ENT_QUOTES, 'UTF-8');
             $value = nl2br(htmlspecialchars(
-                $this->getDisplayValue($submission->getFieldValue($handle), $field, $siteHandle),
+                $this->getDisplayValueForField($handle, $submission->getFieldValue($handle), $field, $siteHandle),
                 ENT_QUOTES,
                 'UTF-8'
             ), false);
@@ -771,8 +794,12 @@ class Notifications extends Component
         }
 
         foreach ($rows as $handle) {
-            $label = $form->resolveFieldLabel($handle, $siteHandle);
-            $value = $this->formatValueForEmail($data[$handle] ?? '');
+            try {
+                $label = $form->resolveFieldLabel($handle, $siteHandle);
+                $value = $this->formatValueForEmail($data[$handle] ?? '');
+            } catch (\Throwable $e) {
+                throw new \RuntimeException("field '{$handle}': " . $e->getMessage(), 0, $e);
+            }
             $html .= "<li><strong>" . htmlspecialchars($label) . ":</strong> " . htmlspecialchars($value) . "</li>";
         }
 
