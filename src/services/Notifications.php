@@ -725,11 +725,11 @@ class Notifications extends Component
                 
                 if ((string)$optVal === (string)$val) {
                     // If label is empty, return value (fallback 1)
-                    return $optLabel !== '' ? $optLabel : $val;
+                    return (string)($optLabel !== '' ? $optLabel : $val);
                 }
             }
             // Value not found in options, return value (fallback 2)
-            return $val;
+            return (string)$val;
         };
 
         if (is_array($value)) {
