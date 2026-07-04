@@ -1,16 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-  <!-- brand tile -->
-  <rect width="96" height="96" rx="22" fill="#2563EB"/>
-  <!-- form glyph -->
-  <g fill="none" stroke="#FFFFFF" stroke-width="5"
-     stroke-linecap="round" stroke-linejoin="round">
-    <!-- sheet -->
-    <rect x="25" y="19" width="46" height="58" rx="8"/>
-    <!-- field lines -->
-    <path d="M34 35 H62"/>
-    <path d="M34 48 H62"/>
-    <path d="M34 61 H48"/>
-    <!-- submitted / valid check -->
-    <path d="M52 61 l5 5 l9 -12"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="#5B3DF5"/>
+  <path d="M9 11h14M9 16h9" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M17 22l3 3 6-6" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>
