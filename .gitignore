@@ -26,6 +26,7 @@
 # Local working docs / planning / review notes (not part of the plugin).
 # Kept on disk locally but never committed; only README/LICENSE/CHANGELOG ship.
 /POSITIONING.md
+/MARKETING.md
 /TODO.md
 /PRE-PUBLISH-CHECKLIST.md
 /SECURITY-REVIEW.md
