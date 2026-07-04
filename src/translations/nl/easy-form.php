@@ -707,4 +707,8 @@ return [
     'Security token error. Please refresh the page.' => 'Beveiligingstokenfout. Vernieuw de pagina.',
     'An error occurred' => 'Er is een fout opgetreden',
     'An unexpected error occurred. Please try again.' => 'Er is een onverwachte fout opgetreden. Probeer het opnieuw.',
+
+    // Export per-site filter — added for multi-site export.
+    'Exporting {n} from the selected sites.' => 'Exporteren van {n} uit de geselecteerde sites.',
+    'Select at least one site to export.' => 'Selecteer minstens één site om te exporteren.',
 ];

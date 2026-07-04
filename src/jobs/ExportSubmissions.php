@@ -24,7 +24,8 @@ class ExportSubmissions extends BaseJob
     /** Handle of a deleted form, for exporting its orphaned submissions. */
     public ?string $orphanedHandle = null;
     public ?string $status = null;
-    public ?int $siteId = null;
+    /** @var int[]|null Restrict to these site ids (null/empty = all sites). */
+    public ?array $siteIds = null;
     public ?string $dateFrom = null;
     public ?string $dateTo = null;
     public ?string $search = null;
@@ -53,7 +54,7 @@ class ExportSubmissions extends BaseJob
                 $stream = $submissions->buildOrphanedCsvStream(
                     $this->orphanedHandle,
                     $this->status,
-                    $this->siteId,
+                    $this->siteIds,
                     $this->dateFrom,
                     $this->dateTo,
                     $this->search,
@@ -69,7 +70,7 @@ class ExportSubmissions extends BaseJob
                 $stream = $submissions->buildCsvStream(
                     $form,
                     $this->status,
-                    $this->siteId,
+                    $this->siteIds,
                     $this->dateFrom,
                     $this->dateTo,
                     $this->search,

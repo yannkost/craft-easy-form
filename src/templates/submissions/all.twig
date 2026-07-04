@@ -68,6 +68,17 @@
                 </select>
             </div>
 
+            {% if exportSites|length > 1 %}
+            <div class="select">
+                <select name="siteId" id="ef-site">
+                    <option value="">{{ 'All sites'|t('easy-form') }}</option>
+                    {% for s in exportSites %}
+                        <option value="{{ s.id }}" {{ selectedSiteId == s.id ? 'selected' }}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
             <div class="ef-daterange">
                 <span class="ef-cal-icon" data-icon="calendar" aria-hidden="true"></span>
                 <input type="date" name="dateFrom" value="{{ dateFrom ?? '' }}" aria-label="{{ 'From'|t('easy-form') }}">
@@ -182,6 +193,7 @@
                         {% if (search ?? '') %}<li><strong>{{ 'Search'|t('easy-form') }}:</strong> “{{ search }}”</li>{% endif %}
                         {% if (dateFrom ?? '') or (dateTo ?? '') %}<li><strong>{{ 'Date'|t('easy-form') }}:</strong> {{ dateFrom ?: '…' }} – {{ dateTo ?: '…' }}</li>{% endif %}
                     </ul>
+                    <p class="ef-export-sitecount" id="ef-export-sitecount" data-total="{{ pages.totalCount }}" hidden></p>
                 </div>
             </div>
 
@@ -195,6 +207,26 @@
                 </div>
                 <div class="ef-cols-list" id="ef-export-cols-list"></div>
             </div>
+
+            {% if exportSites|length > 1 %}
+            <div class="ef-modal-sites">
+                <div class="heading">
+                    <label>{{ 'Sites'|t('easy-form') }}</label>
+                    <span class="ef-cols-actions">
+                        <button type="button" class="btn small" data-sites-all>{{ 'All'|t('easy-form') }}</button>
+                        <button type="button" class="btn small" data-sites-none>{{ 'None'|t('easy-form') }}</button>
+                    </span>
+                </div>
+                <div class="ef-cols-list" id="ef-export-sites-list">
+                    {% for s in exportSites %}
+                    <label class="ef-col-pick">
+                        <input type="checkbox" class="ef-export-site" value="{{ s.id }}" data-count="{{ siteCounts[s.id] ?? 0 }}" {{ (selectedSiteId is null or selectedSiteId == s.id) ? 'checked' }}>
+                        <span>{{ s.name }} <span class="ef-site-count">{{ siteCounts[s.id] ?? 0 }}</span></span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
 
             <label class="ef-keep-export">
                 <input type="checkbox" id="ef-export-keep">
@@ -217,7 +249,7 @@
     var filterForm = document.getElementById('ef-filter');
 
     // ── Auto-applying filters (no Apply button) ──────────────────
-    ['ef-form', 'ef-status', 'ef-orphaned-form'].forEach(function (id) {
+    ['ef-form', 'ef-status', 'ef-orphaned-form', 'ef-site'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.addEventListener('change', function () { filterForm.submit(); });
     });
@@ -253,8 +285,30 @@
     var exportGo = document.getElementById('ef-export-go');
 
     var keepInput = document.getElementById('ef-export-keep');
-    function openExportModal() { exportModal.hidden = false; if (keepInput) { keepInput.checked = false; } }
+    function openExportModal() { exportModal.hidden = false; if (keepInput) { keepInput.checked = false; } updateSiteCount(); }
     function closeExportModal() { exportModal.hidden = true; }
+
+    var sitesList = document.getElementById('ef-export-sites-list');
+    var siteCountEl = document.getElementById('ef-export-sitecount');
+    function siteBoxes() {
+        return sitesList ? Array.prototype.slice.call(sitesList.querySelectorAll('.ef-export-site')) : [];
+    }
+    function selectedSites() {
+        return siteBoxes().filter(function (cb) { return cb.checked; }).map(function (cb) { return cb.value; });
+    }
+    function allSitesChecked() {
+        var boxes = siteBoxes();
+        return boxes.length > 0 && boxes.every(function (cb) { return cb.checked; });
+    }
+    function updateSiteCount() {
+        if (!sitesList || !siteCountEl) return;
+        if (allSitesChecked()) { siteCountEl.hidden = true; return; }
+        var sum = siteBoxes().reduce(function (n, cb) {
+            return n + (cb.checked ? (parseInt(cb.dataset.count, 10) || 0) : 0);
+        }, 0);
+        siteCountEl.hidden = false;
+        siteCountEl.textContent = Craft.t('easy-form', 'Exporting {n} from the selected sites.', { n: sum });
+    }
 
     function renderColumns(cols) {
         colsList.innerHTML = '';
@@ -354,6 +408,14 @@
                 colsList.querySelectorAll('input[type="checkbox"]').forEach(function (cb) { cb.checked = on; });
             });
         });
+        exportModal.querySelectorAll('[data-sites-all], [data-sites-none]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var on = btn.hasAttribute('data-sites-all');
+                siteBoxes().forEach(function (cb) { cb.checked = on; });
+                updateSiteCount();
+            });
+        });
+        siteBoxes().forEach(function (cb) { cb.addEventListener('change', updateSiteCount); });
     }
     if (exportGo) {
         exportGo.addEventListener('click', function () {
@@ -370,6 +432,15 @@
             if (exportBtn.dataset.search) data.search = exportBtn.dataset.search;
             if (exportBtn.dataset.dateFrom) data.dateFrom = exportBtn.dataset.dateFrom;
             if (exportBtn.dataset.dateTo) data.dateTo = exportBtn.dataset.dateTo;
+            // Restrict to selected sites (only when a subset is chosen).
+            if (sitesList && !allSitesChecked()) {
+                var sites = selectedSites();
+                if (!sites.length) {
+                    Craft.cp.displayError(Craft.t('easy-form', 'Select at least one site to export.'));
+                    return;
+                }
+                data.siteIds = sites;
+            }
             data.keep = keepInput && keepInput.checked ? 1 : 0;
             var kept = data.keep === 1;
             exportGo.disabled = true;
@@ -733,6 +804,11 @@
 .ef-col-pick input { margin: 0; }
 .ef-cols-list .light { color: #8893a2; margin: 4px 0; }
 .ef-cols-list .error { color: #b32328; margin: 4px 0; }
+.ef-modal-sites { margin-top: 16px; }
+.ef-modal-sites > .heading { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.ef-modal-sites > .heading label { font-weight: 600; }
+.ef-site-count { color: #8893a2; font-size: 12px; margin-left: 4px; }
+.ef-export-sitecount { margin: 6px 0 0; font-size: 12px; color: #5a6572; font-weight: 600; }
 .ef-modal-box .buttons { margin-top: 22px; display: flex; gap: 10px; justify-content: flex-end; }
 {% endcss %}
 {% endblock %}

@@ -73,6 +73,7 @@ class SubmissionsController extends Controller
         $search = trim((string) $request->getQueryParam('search', ''));
         $dateFrom = trim((string) $request->getQueryParam('dateFrom', ''));
         $dateTo = trim((string) $request->getQueryParam('dateTo', ''));
+        $selectedSiteId = (int) $request->getQueryParam('siteId') ?: null;
         $limit = self::resolvePageSize($request->getQueryParam('limit'));
 
         // The special "orphaned" value targets submissions whose form was deleted
@@ -117,6 +118,30 @@ class SubmissionsController extends Controller
             $query->andWhere(['<=', 'dateCreated', $dateTo . ' 23:59:59']);
         }
 
+        // Per-site counts for the export modal's site filter (multi-site only),
+        // computed BEFORE the list's own site filter so every site's count is
+        // available — the modal can re-add sites the list is currently hiding.
+        $exportSites = Craft::$app->sites->getAllSites();
+        $siteCounts = [];
+        if (count($exportSites) > 1) {
+            $countRows = (clone $query)
+                ->select(['siteId', 'n' => 'COUNT(*)'])
+                ->orderBy([])
+                ->groupBy('siteId')
+                ->asArray()
+                ->all();
+            foreach ($countRows as $r) {
+                if ($r['siteId'] !== null) {
+                    $siteCounts[(int) $r['siteId']] = (int) $r['n'];
+                }
+            }
+        }
+
+        // The list's single-site filter (applied after the per-site counts above).
+        if ($selectedSiteId) {
+            $query->andWhere(['siteId' => $selectedSiteId]);
+        }
+
         $pages = new \yii\data\Pagination([
             'totalCount' => $query->count(),
             'defaultPageSize' => $limit,
@@ -143,6 +168,9 @@ class SubmissionsController extends Controller
             'statuses' => ['pending', 'approved', 'spam', 'archived'],
             'orphanedForms' => $orphanedForms,
             'selectedOrphanedForm' => $orphanedForm,
+            'exportSites' => $exportSites,
+            'siteCounts' => $siteCounts,
+            'selectedSiteId' => $selectedSiteId,
         ]);
     }
 
@@ -342,7 +370,15 @@ class SubmissionsController extends Controller
         if (!in_array($status, ['pending', 'approved', 'spam', 'archived'], true)) {
             $status = null;
         }
-        $siteId = (int) Craft::$app->request->getParam('siteId') ?: null;
+        // Restrict to selected sites (checkbox group in the export modal); an
+        // empty selection means "all sites". Validate against real site ids.
+        $siteIds = Craft::$app->request->getParam('siteIds');
+        $siteIds = is_array($siteIds) ? array_values(array_filter(array_map('intval', $siteIds))) : [];
+        if (!empty($siteIds)) {
+            $validSiteIds = array_map(static fn($s) => (int) $s->id, Craft::$app->sites->getAllSites());
+            $siteIds = array_values(array_intersect($siteIds, $validSiteIds));
+        }
+        $siteIds = $siteIds ?: null;
         $dateFrom = trim((string) Craft::$app->request->getParam('dateFrom', ''));
         $dateFrom = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom) ? $dateFrom : null;
         $dateTo = trim((string) Craft::$app->request->getParam('dateTo', ''));
@@ -403,7 +439,7 @@ class SubmissionsController extends Controller
             'formName' => $formName,
             'filters' => [
                 'status' => $status,
-                'siteId' => $siteId,
+                'siteIds' => $siteIds,
                 'dateFrom' => $dateFrom,
                 'dateTo' => $dateTo,
                 'search' => $search,
@@ -418,7 +454,7 @@ class SubmissionsController extends Controller
 
         Craft::$app->getQueue()->push(new \yannkost\easyform\jobs\ExportSubmissions($jobConfig + [
             'status' => $status,
-            'siteId' => $siteId,
+            'siteIds' => $siteIds,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
             'search' => $search,

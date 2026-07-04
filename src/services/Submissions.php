@@ -371,13 +371,15 @@ class Submissions extends Component
      */
     private function applyExportFilters(
         \yii\db\ActiveQuery $query,
-        ?int $siteId,
+        int|array|null $siteIds,
         ?string $dateFrom,
         ?string $dateTo,
         ?string $search = null
     ): \yii\db\ActiveQuery {
-        if ($siteId) {
-            $query->andWhere(['siteId' => $siteId]);
+        // Accept a single id or a list; an empty list means "all sites".
+        $siteIds = array_values(array_filter(array_map('intval', (array) $siteIds)));
+        if (!empty($siteIds)) {
+            $query->andWhere(['siteId' => $siteIds]);
         }
         if ($dateFrom !== null && $dateFrom !== '') {
             $query->andWhere(['>=', 'dateCreated', $dateFrom]);
@@ -406,11 +408,11 @@ class Submissions extends Component
     public function countSubmissionsByFilters(
         int $formId,
         ?string $status = null,
-        ?int $siteId = null,
+        int|array|null $siteIds = null,
         ?string $dateFrom = null,
         ?string $dateTo = null
     ): int {
-        $query = $this->applyExportFilters($this->getSubmissionsQuery($formId, $status), $siteId, $dateFrom, $dateTo);
+        $query = $this->applyExportFilters($this->getSubmissionsQuery($formId, $status), $siteIds, $dateFrom, $dateTo);
         return (int) $query->count();
     }
 
@@ -422,11 +424,11 @@ class Submissions extends Component
     public function deleteSubmissionsByFilters(
         int $formId,
         ?string $status = null,
-        ?int $siteId = null,
+        int|array|null $siteIds = null,
         ?string $dateFrom = null,
         ?string $dateTo = null
     ): int {
-        $query = $this->applyExportFilters($this->getSubmissionsQuery($formId, $status), $siteId, $dateFrom, $dateTo);
+        $query = $this->applyExportFilters($this->getSubmissionsQuery($formId, $status), $siteIds, $dateFrom, $dateTo);
         $ids = $query->select(['id'])->column();
         if (!$ids) {
             return 0;
@@ -770,7 +772,7 @@ class Submissions extends Component
     public function buildCsvStream(
         \yannkost\easyform\models\Form $form,
         ?string $status = null,
-        ?int $siteId = null,
+        int|array|null $siteIds = null,
         ?string $dateFrom = null,
         ?string $dateTo = null,
         ?string $search = null,
@@ -779,7 +781,7 @@ class Submissions extends Component
     ) {
         $query = $this->applyExportFilters(
             $this->getSubmissionRowsQuery($form->id, $status),
-            $siteId, $dateFrom, $dateTo, $search
+            $siteIds, $dateFrom, $dateTo, $search
         );
         return $this->streamCsv($this->exportColumns($form), $query, $columns, $rowCount);
     }
@@ -794,7 +796,7 @@ class Submissions extends Component
     public function buildOrphanedCsvStream(
         string $handle,
         ?string $status = null,
-        ?int $siteId = null,
+        int|array|null $siteIds = null,
         ?string $dateFrom = null,
         ?string $dateTo = null,
         ?string $search = null,
@@ -804,7 +806,7 @@ class Submissions extends Component
         $snapshot = $this->getOrphanedFieldSnapshot($handle) ?? ['fields' => []];
         $query = $this->applyExportFilters(
             $this->getOrphanedRowsQuery($handle, $status),
-            $siteId, $dateFrom, $dateTo, $search
+            $siteIds, $dateFrom, $dateTo, $search
         );
         return $this->streamCsv($this->exportColumnsFromSnapshot($snapshot), $query, $columns, $rowCount);
     }

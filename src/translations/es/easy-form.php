@@ -707,4 +707,8 @@ return [
     'Security token error. Please refresh the page.' => 'Error de token de seguridad. Actualice la página.',
     'An error occurred' => 'Se ha producido un error',
     'An unexpected error occurred. Please try again.' => 'Se ha producido un error inesperado. Inténtelo de nuevo.',
+
+    // Export per-site filter — added for multi-site export.
+    'Exporting {n} from the selected sites.' => 'Exportando {n} de los sitios seleccionados.',
+    'Select at least one site to export.' => 'Seleccione al menos un sitio para exportar.',
 ];

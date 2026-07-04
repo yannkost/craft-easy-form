@@ -713,4 +713,8 @@ return [
     'Security token error. Please refresh the page.' => 'Security token error. Please refresh the page.',
     'An error occurred' => 'An error occurred',
     'An unexpected error occurred. Please try again.' => 'An unexpected error occurred. Please try again.',
+
+    // Export per-site filter — added for multi-site export.
+    'Exporting {n} from the selected sites.' => 'Exporting {n} from the selected sites.',
+    'Select at least one site to export.' => 'Select at least one site to export.',
 ];
