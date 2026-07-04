@@ -1,46 +1,18 @@
 # Release Notes for Easy Form
 
-## Unreleased
+## 1.1.0 - 2026-07-03
 
 ### Added
 
 - Frontend validation and UI messages now follow the current site's language,
   with translated defaults shipped in English, French, German, Spanish, Italian,
   and Dutch. Per-field custom messages still take precedence.
-- Per-site submission export: the export modal now has a **Sites** checkbox group
+- Per-site submission export: the export modal has a **Sites** checkbox group
   (All/None) with a live per-site subtotal, so you can export every site or just
-  a subset.
-- A **site** filter in the Submissions list (multi-site installs).
-
-### Changed
-
-- Spam submissions no longer trigger email notifications (they already skipped
-  webhooks) — a flagged submission never emails admins or a dynamic `{email}`
-  recipient.
-- Manually re-sending a notification now requires the **Edit submissions**
-  permission (was View submissions).
-- Saving plugin settings now requires an admin account.
-- Expanded the blocked upload-extension list (php8, phps, xhtml, mhtml, swf, and
-  more).
-- CSV exports now include a UTF-8 BOM so Excel reads accented and non-Latin
-  characters correctly.
-
-### Fixed
-
-- Notifications with no explicit sender no longer fail silently; they fall back to
-  the system mail settings. An invalid or unresolved-placeholder Reply-To is
-  skipped instead of failing the whole send.
-- Renaming an existing form no longer regenerates — and breaks — its handle.
-- Malformed stored form JSON no longer throws; it falls back to an empty value.
-- reCAPTCHA v3 now verifies the token's action as an anti-replay measure.
-- Multi-page forms: Enter advances the step instead of submitting early, and a
-  server-side error reveals the page holding the first invalid field.
-- Unique-value checks now work on PostgreSQL.
-
-## 1.1.0 - 2026-07-03
-
-### Added
-
+  a subset. The Submissions list also gains a **site** filter on multi-site
+  installs.
+- Multi-page forms: pressing Enter advances to the next step instead of submitting
+  early, and a server-side error reveals the page holding the first invalid field.
 - reCAPTCHA v3: a **Branding** setting that hides Google's floating badge and
   shows the required inline disclosure notice near the submit button (default,
   always visible and Terms-compliant), or keeps Google's floating badge.
@@ -63,6 +35,18 @@
   previous behavior.
 - Every CAPTCHA outcome is now written to `easy-form.log`; previously only
   score-based blocks were logged, so missing/invalid-token failures were silent.
+- Spam submissions no longer trigger email notifications or webhooks — a flagged
+  submission never emails admins or a dynamic `{email}` recipient.
+- Manually re-sending a notification now requires the **Edit submissions**
+  permission; saving plugin settings requires an admin account.
+- Expanded the blocked upload-extension list (php8, phps, xhtml, mhtml, swf, and
+  more), and CSV exports now include a UTF-8 BOM so Excel reads accented and
+  non-Latin characters correctly.
+- Notifications fall back to the system mail settings when no sender is set, and
+  an invalid or unresolved-placeholder Reply-To is skipped rather than failing the
+  send.
+- reCAPTCHA v3 now verifies the token's action as an anti-replay measure, and
+  unique-value checks work on PostgreSQL as well as MySQL.
 
 ## 1.0.0 - 2026-06-25
 
