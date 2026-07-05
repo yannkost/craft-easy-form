@@ -1,4 +1,5 @@
 {% import '_includes/forms' as forms %}
+{% import 'easy-form/forms/_localized.twig' as loc %}
 
 {% set index = index ?? 'new' %}
 {% set notification = notification ?? {} %}
@@ -45,11 +46,13 @@
             value: notification.recipients|default([])|join(', ')
         }) }}
 
-        {{ forms.textField({
+        {{ loc.field({
             label: 'Subject'|t('easy-form'),
-            id: idPrefix ~ '-subject',
-            name: namePrefix ~ '[subject]',
-            value: notification.subject|default('New form submission')
+            baseName: namePrefix ~ '[subject]',
+            baseValue: notification.subject|default('New form submission'),
+            mapName: namePrefix ~ '[siteSubjects]',
+            mapValues: notification.siteSubjects|default({}),
+            othersFallback: 'primary'
         }) }}
 
         <div class="flex-fields">
@@ -203,14 +206,6 @@
                     id: idPrefix ~ '-siteEnabled-' ~ site.handle,
                     name: namePrefix ~ '[siteEnabled][' ~ site.handle ~ ']',
                     on: notification.siteEnabled[site.handle] ?? true
-                }) }}
-
-                {{ forms.textField({
-                    label: 'Subject'|t('easy-form'),
-                    instructions: 'Leave blank to use the default subject above.'|t('easy-form'),
-                    id: idPrefix ~ '-siteSubject-' ~ site.handle,
-                    name: namePrefix ~ '[siteSubjects][' ~ site.handle ~ ']',
-                    value: notification.siteSubjects[site.handle] ?? ''
                 }) }}
 
                 {% set useTwigId = idPrefix ~ '-useTwig-' ~ site.handle %}
