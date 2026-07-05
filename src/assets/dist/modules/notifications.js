@@ -35,7 +35,7 @@ export function setupNotifications() {
             .map(([v, l]) => `<option value="${v}">${l}</option>`)
             .join('');
         return `<div class="notification-rule">`
-            + `<input type="text" class="text" name="${rname}[field]" value="" placeholder="field handle">`
+            + `<input type="text" class="text ef-cond-field" name="${rname}[field]" value="" placeholder="field handle" list="ef-condition-handles">`
             + `<div class="select"><select name="${rname}[operator]">${options}</select></div>`
             + `<input type="text" class="text" name="${rname}[value]" value="" placeholder="value">`
             + `<button type="button" class="btn small remove-notification-rule" title="Remove"><span data-icon="remove"></span></button>`

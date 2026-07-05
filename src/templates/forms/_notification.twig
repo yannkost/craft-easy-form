@@ -138,7 +138,7 @@
                 {% for rule in notification.conditions.rules ?? [] %}
                     {% set rname = namePrefix ~ '[conditions][rules][' ~ loop.index0 ~ ']' %}
                     <div class="notification-rule">
-                        <input type="text" class="text" name="{{ rname }}[field]" value="{{ rule.field ?? '' }}" placeholder="{{ 'field handle'|t('easy-form') }}">
+                        <input type="text" class="text ef-cond-field" name="{{ rname }}[field]" value="{{ rule.field ?? '' }}" placeholder="{{ 'field handle'|t('easy-form') }}" list="ef-condition-handles">
                         <div class="select">
                             <select name="{{ rname }}[operator]">
                                 {% for opVal, opLabel in condOperators %}
