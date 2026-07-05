@@ -31,6 +31,8 @@ class ExportSubmissions extends BaseJob
     public ?string $search = null;
     /** @var string[]|null Selected export column keys (null = default set). */
     public ?array $columns = null;
+    /** @var string How file-field cells are rendered: 'path' | 'filename' | 'id'. */
+    public string $fileFormat = 'path';
     public string $token = '';
 
     protected function defaultDescription(): string
@@ -59,7 +61,8 @@ class ExportSubmissions extends BaseJob
                     $this->dateTo,
                     $this->search,
                     $this->columns,
-                    $rowCount
+                    $rowCount,
+                    $this->fileFormat
                 );
             } else {
                 $form = EasyForm::getInstance()->forms->getFormById((int) $this->formId);
@@ -75,7 +78,8 @@ class ExportSubmissions extends BaseJob
                     $this->dateTo,
                     $this->search,
                     $this->columns,
-                    $rowCount
+                    $rowCount,
+                    $this->fileFormat
                 );
             }
 

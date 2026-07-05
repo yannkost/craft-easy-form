@@ -208,6 +208,20 @@
                 <div class="ef-cols-list" id="ef-export-cols-list"></div>
             </div>
 
+            <div class="ef-modal-fileformat field">
+                <div class="heading"><label>{{ 'File columns'|t('easy-form') }}</label></div>
+                <div class="instructions"><p>{{ 'How uploaded-file fields appear in the CSV.'|t('easy-form') }}</p></div>
+                <div class="input">
+                    <div class="select">
+                        <select id="ef-export-fileformat">
+                            <option value="path">{{ 'Full path'|t('easy-form') }}</option>
+                            <option value="filename">{{ 'File name'|t('easy-form') }}</option>
+                            <option value="id">{{ 'Craft asset ID'|t('easy-form') }}</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             {% if exportSites|length > 1 %}
             <div class="ef-modal-sites">
                 <div class="heading">
@@ -432,6 +446,8 @@
             if (exportBtn.dataset.search) data.search = exportBtn.dataset.search;
             if (exportBtn.dataset.dateFrom) data.dateFrom = exportBtn.dataset.dateFrom;
             if (exportBtn.dataset.dateTo) data.dateTo = exportBtn.dataset.dateTo;
+            var fileFormatEl = document.getElementById('ef-export-fileformat');
+            if (fileFormatEl) data.fileFormat = fileFormatEl.value;
             // Restrict to selected sites (only when a subset is chosen).
             if (sitesList && !allSitesChecked()) {
                 var sites = selectedSites();

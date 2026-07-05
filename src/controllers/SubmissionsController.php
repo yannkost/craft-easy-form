@@ -392,6 +392,12 @@ class SubmissionsController extends Controller
             ? array_values(array_filter(array_map('strval', $columns), fn($c) => $c !== ''))
             : null;
 
+        // How file-field cells are rendered: full path (default), filename, or Craft id.
+        $fileFormat = (string) Craft::$app->request->getParam('fileFormat', 'path');
+        if (!in_array($fileFormat, ['path', 'filename', 'id'], true)) {
+            $fileFormat = 'path';
+        }
+
         // Orphaned export: a specific deleted form is targeted by its handle
         // (heterogeneous "all deleted forms" export isn't supported — the
         // columns would be undefined across differing snapshots).
@@ -459,6 +465,7 @@ class SubmissionsController extends Controller
             'dateTo' => $dateTo,
             'search' => $search,
             'columns' => $columns,
+            'fileFormat' => $fileFormat,
             'token' => $token,
         ]));
 

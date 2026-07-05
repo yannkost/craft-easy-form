@@ -435,6 +435,68 @@ class Submissions extends Component
         return true;
     }
 
+    /**
+     * Renders a file-field value for a CSV cell in the chosen format:
+     *  - 'path'     full location (public URL, else stored path) — the default
+     *  - 'filename' just the file name
+     *  - 'id'       Craft asset id (asset-mode uploads only; filesystem files
+     *               have no id, so their filename is used)
+     * Handles both filesystem-mode wrappers and asset-id values, comma-separated.
+     */
+    private function formatFileCell(mixed $value, string $mode): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        // Filesystem-stored files (or a plain list of file entries).
+        if (is_array($value)) {
+            $entries = null;
+            if (isset($value['files']) && is_array($value['files'])) {
+                $entries = $value['files'];
+            } elseif ($this->isFileEntryList($value)) {
+                $entries = $value;
+            }
+            if ($entries !== null) {
+                $out = [];
+                foreach ($entries as $f) {
+                    if (!is_array($f)) {
+                        continue;
+                    }
+                    $out[] = match ($mode) {
+                        'filename' => (string) ($f['filename'] ?? $f['path'] ?? $f['url'] ?? ''),
+                        'id' => (string) ($f['filename'] ?? ''),
+                        default => (string) ($f['url'] ?? $f['path'] ?? $f['filename'] ?? ''),
+                    };
+                }
+                return implode(', ', array_filter($out, static fn($v) => $v !== ''));
+            }
+        }
+
+        // Asset-stored files: a single id or a list of ids.
+        $ids = is_array($value) ? $value : [$value];
+        $out = [];
+        foreach ($ids as $id) {
+            if (!is_numeric($id)) {
+                // Unknown shape — fall back to the generic rendering.
+                return $this->formatCsvValue($value);
+            }
+            if ($mode === 'id') {
+                $out[] = (string) (int) $id;
+                continue;
+            }
+            $asset = Craft::$app->getAssets()->getAssetById((int) $id);
+            if ($asset === null) {
+                $out[] = (string) (int) $id;
+                continue;
+            }
+            $out[] = $mode === 'filename'
+                ? (string) $asset->getFilename()
+                : (string) ($asset->getUrl() ?: $asset->getFilename());
+        }
+        return implode(', ', $out);
+    }
+
     private function applyExportFilters(
         \yii\db\ActiveQuery $query,
         int|array|null $siteIds,
@@ -768,18 +830,21 @@ class Submissions extends Component
 
         // Value-carrying fields in schema order, deduped by handle.
         $fieldLabels = [];
+        $fieldTypes = [];
         foreach ($schema->getValueFields($layout) as $field) {
             if (!empty($field['handle'])) {
                 $fieldLabels[$field['handle']] = $field['label'] ?? $field['handle'];
+                $fieldTypes[$field['handle']] = $field['type'] ?? null;
             }
         }
         foreach ($schema->getFrontendFields($layout) as $field) {
             if (!empty($field['handle'])) {
                 $fieldLabels[$field['handle']] = $field['label'] ?? $field['handle'];
+                $fieldTypes[$field['handle']] = $field['type'] ?? null;
             }
         }
 
-        return $this->exportColumnDefs($fieldLabels);
+        return $this->exportColumnDefs($fieldLabels, $fieldTypes);
     }
 
     /**
@@ -791,12 +856,14 @@ class Submissions extends Component
     public function exportColumnsFromSnapshot(array $snapshot): array
     {
         $fieldLabels = [];
+        $fieldTypes = [];
         foreach ($snapshot['fields'] ?? [] as $field) {
             if (!empty($field['handle'])) {
                 $fieldLabels[$field['handle']] = $field['label'] ?? $field['handle'];
+                $fieldTypes[$field['handle']] = $field['type'] ?? null;
             }
         }
-        return $this->exportColumnDefs($fieldLabels);
+        return $this->exportColumnDefs($fieldLabels, $fieldTypes);
     }
 
     /**
@@ -806,11 +873,17 @@ class Submissions extends Component
      * @param array<string,string> $fieldLabels
      * @return array<int,array{key:string,label:string,group:string,default:bool}>
      */
-    private function exportColumnDefs(array $fieldLabels): array
+    private function exportColumnDefs(array $fieldLabels, array $fieldTypes = []): array
     {
         $defs = [];
         foreach ($fieldLabels as $handle => $label) {
-            $defs[] = ['key' => 'field:' . $handle, 'label' => $label, 'group' => 'fields', 'default' => true];
+            $defs[] = [
+                'key' => 'field:' . $handle,
+                'label' => $label,
+                'group' => 'fields',
+                'default' => true,
+                'type' => $fieldTypes[$handle] ?? null,
+            ];
         }
 
         $defs[] = ['key' => 'id', 'label' => Craft::t('easy-form', 'ID'), 'group' => 'meta', 'default' => false];
@@ -843,13 +916,14 @@ class Submissions extends Component
         ?string $dateTo = null,
         ?string $search = null,
         ?array $columns = null,
-        ?int &$rowCount = null
+        ?int &$rowCount = null,
+        string $fileFormat = 'path'
     ) {
         $query = $this->applyExportFilters(
             $this->getSubmissionRowsQuery($form->id, $status),
             $siteIds, $dateFrom, $dateTo, $search
         );
-        return $this->streamCsv($this->exportColumns($form), $query, $columns, $rowCount);
+        return $this->streamCsv($this->exportColumns($form), $query, $columns, $rowCount, $fileFormat);
     }
 
     /**
@@ -867,14 +941,15 @@ class Submissions extends Component
         ?string $dateTo = null,
         ?string $search = null,
         ?array $columns = null,
-        ?int &$rowCount = null
+        ?int &$rowCount = null,
+        string $fileFormat = 'path'
     ) {
         $snapshot = $this->getOrphanedFieldSnapshot($handle) ?? ['fields' => []];
         $query = $this->applyExportFilters(
             $this->getOrphanedRowsQuery($handle, $status),
             $siteIds, $dateFrom, $dateTo, $search
         );
-        return $this->streamCsv($this->exportColumnsFromSnapshot($snapshot), $query, $columns, $rowCount);
+        return $this->streamCsv($this->exportColumnsFromSnapshot($snapshot), $query, $columns, $rowCount, $fileFormat);
     }
 
     /**
@@ -884,7 +959,7 @@ class Submissions extends Component
      * @param \yii\db\ActiveQuery $query A filtered, ->asArray() submissions query.
      * @return resource A rewound php://temp stream.
      */
-    private function streamCsv(array $defs, \yii\db\ActiveQuery $query, ?array $columns = null, ?int &$rowCount = null)
+    private function streamCsv(array $defs, \yii\db\ActiveQuery $query, ?array $columns = null, ?int &$rowCount = null, string $fileFormat = 'path')
     {
         $rowCount = 0;
 
@@ -930,7 +1005,9 @@ class Submissions extends Component
                     $key = $d['key'];
                     if (strncmp($key, 'field:', 6) === 0) {
                         $value = $flat[substr($key, 6)] ?? '';
-                        $line[] = $this->formatCsvValue($value);
+                        $line[] = ($d['type'] ?? null) === 'file'
+                            ? $this->formatFileCell($value, $fileFormat)
+                            : $this->formatCsvValue($value);
                     } elseif ($key === 'extra') {
                         $extra = array_diff_key($flat, array_flip($knownHandles));
                         $line[] = !empty($extra) ? Json::encode($extra) : '';
