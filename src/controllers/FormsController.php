@@ -694,6 +694,7 @@ class FormsController extends Controller
                     'siteTemplates' => is_array($setting['siteTemplates'] ?? null) ? $setting['siteTemplates'] : [],
                     'siteUseTwig' => is_array($setting['siteUseTwig'] ?? null) ? $setting['siteUseTwig'] : [],
                     'siteContent' => is_array($setting['siteContent'] ?? null) ? $setting['siteContent'] : [],
+                    'siteSubjects' => is_array($setting['siteSubjects'] ?? null) ? $setting['siteSubjects'] : [],
                     'siteEnabled' => is_array($setting['siteEnabled'] ?? null) ? $setting['siteEnabled'] : [],
                     'conditions' => $this->parseNotificationConditions($setting['conditions'] ?? null),
                     'attachFiles' => (bool) ($setting['attachFiles'] ?? false),

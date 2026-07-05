@@ -205,6 +205,14 @@
                     on: notification.siteEnabled[site.handle] ?? true
                 }) }}
 
+                {{ forms.textField({
+                    label: 'Subject'|t('easy-form'),
+                    instructions: 'Leave blank to use the default subject above.'|t('easy-form'),
+                    id: idPrefix ~ '-siteSubject-' ~ site.handle,
+                    name: namePrefix ~ '[siteSubjects][' ~ site.handle ~ ']',
+                    value: notification.siteSubjects[site.handle] ?? ''
+                }) }}
+
                 {% set useTwigId = idPrefix ~ '-useTwig-' ~ site.handle %}
                 {% set contentId = idPrefix ~ '-content-' ~ site.handle %}
                 {% set templateId = idPrefix ~ '-template-' ~ site.handle %}

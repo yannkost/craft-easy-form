@@ -457,7 +457,12 @@ class Notifications extends Component
             $step = 'building the message (subject, sender, reply-to, CC/BCC, attachments)';
             // Create Message
             $message = new Message();
-            $message->setSubject($notification['subject'] ?? 'New form submission');
+            // Per-site (translated) subject, falling back to the default subject.
+            $subject = $notification['subject'] ?? 'New form submission';
+            if ($siteHandle !== null && !empty($notification['siteSubjects'][$siteHandle])) {
+                $subject = $notification['siteSubjects'][$siteHandle];
+            }
+            $message->setSubject($subject);
             $message->setHtmlBody($htmlBody);
             
             // Set Sender — fall back to the system mail settings (Craft 5 has no
