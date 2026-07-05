@@ -2,6 +2,7 @@
   "name": "yannkost/craft-easy-form",
   "description": "Make simple forms and display/export submissions",
   "type": "craft-plugin",
+  "homepage": "https://craft-easyform.cloud",
   "license": "proprietary",
   "keywords": [
     "craft",
@@ -15,7 +16,7 @@
     "email": "yann.kost@ik.me",
     "issues": "https://github.com/yannkost/craft-easy-form/issues",
     "source": "https://github.com/yannkost/craft-easy-form",
-    "docs": "https://github.com/yannkost/craft-easy-form"
+    "docs": "https://docs.craft-easyform.cloud"
   },
   "authors": [
     {
@@ -37,7 +38,7 @@
     "name": "Easy Form",
     "developer": "Yann Kost",
     "developerUrl": "https://github.com/yannkost",
-    "documentationUrl": "https://github.com/yannkost/craft-easy-form",
+    "documentationUrl": "https://docs.craft-easyform.cloud",
     "changelogUrl": "https://raw.githubusercontent.com/yannkost/craft-easy-form/main/CHANGELOG.md",
     "class": "yannkost\\easyform\\EasyForm"
   },
