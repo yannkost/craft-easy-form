@@ -917,13 +917,14 @@ class Submissions extends Component
         ?string $search = null,
         ?array $columns = null,
         ?int &$rowCount = null,
-        string $fileFormat = 'path'
+        string $fileFormat = 'path',
+        bool $localizeDates = false
     ) {
         $query = $this->applyExportFilters(
             $this->getSubmissionRowsQuery($form->id, $status),
             $siteIds, $dateFrom, $dateTo, $search
         );
-        return $this->streamCsv($this->exportColumns($form), $query, $columns, $rowCount, $fileFormat);
+        return $this->streamCsv($this->exportColumns($form), $query, $columns, $rowCount, $fileFormat, $localizeDates);
     }
 
     /**
@@ -942,14 +943,15 @@ class Submissions extends Component
         ?string $search = null,
         ?array $columns = null,
         ?int &$rowCount = null,
-        string $fileFormat = 'path'
+        string $fileFormat = 'path',
+        bool $localizeDates = false
     ) {
         $snapshot = $this->getOrphanedFieldSnapshot($handle) ?? ['fields' => []];
         $query = $this->applyExportFilters(
             $this->getOrphanedRowsQuery($handle, $status),
             $siteIds, $dateFrom, $dateTo, $search
         );
-        return $this->streamCsv($this->exportColumnsFromSnapshot($snapshot), $query, $columns, $rowCount, $fileFormat);
+        return $this->streamCsv($this->exportColumnsFromSnapshot($snapshot), $query, $columns, $rowCount, $fileFormat, $localizeDates);
     }
 
     /**
@@ -959,9 +961,20 @@ class Submissions extends Component
      * @param \yii\db\ActiveQuery $query A filtered, ->asArray() submissions query.
      * @return resource A rewound php://temp stream.
      */
-    private function streamCsv(array $defs, \yii\db\ActiveQuery $query, ?array $columns = null, ?int &$rowCount = null, string $fileFormat = 'path')
+    private function streamCsv(array $defs, \yii\db\ActiveQuery $query, ?array $columns = null, ?int &$rowCount = null, string $fileFormat = 'path', bool $localizeDates = false)
     {
         $rowCount = 0;
+
+        // Cache of siteId => ICU locale id, for optional date localization.
+        $siteLocales = [];
+        $localeFor = static function ($siteId) use (&$siteLocales): string {
+            $siteId = (int) $siteId;
+            if (!array_key_exists($siteId, $siteLocales)) {
+                $site = $siteId ? Craft::$app->getSites()->getSiteById($siteId) : null;
+                $siteLocales[$siteId] = $site ? $site->getLocale()->id : Craft::$app->language;
+            }
+            return $siteLocales[$siteId];
+        };
 
         // Resolve active columns in canonical order from the selection (or defaults).
         $selected = $columns !== null
@@ -1005,9 +1018,16 @@ class Submissions extends Component
                     $key = $d['key'];
                     if (strncmp($key, 'field:', 6) === 0) {
                         $value = $flat[substr($key, 6)] ?? '';
-                        $line[] = ($d['type'] ?? null) === 'file'
-                            ? $this->formatFileCell($value, $fileFormat)
-                            : $this->formatCsvValue($value);
+                        $type = $d['type'] ?? null;
+                        if ($type === 'file') {
+                            $line[] = $this->formatFileCell($value, $fileFormat);
+                        } elseif ($localizeDates
+                            && \yannkost\easyform\helpers\DateFormatter::isDateType($type)
+                            && is_scalar($value) && (string) $value !== '') {
+                            $line[] = \yannkost\easyform\helpers\DateFormatter::localize((string) $value, $type, $localeFor($row['siteId'] ?? null));
+                        } else {
+                            $line[] = $this->formatCsvValue($value);
+                        }
                     } elseif ($key === 'extra') {
                         $extra = array_diff_key($flat, array_flip($knownHandles));
                         $line[] = !empty($extra) ? Json::encode($extra) : '';

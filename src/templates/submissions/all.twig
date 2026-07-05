@@ -243,6 +243,14 @@
             {% endif %}
 
             <label class="ef-keep-export">
+                <input type="checkbox" id="ef-export-localize-dates">
+                <span>
+                    {{ 'Localize dates'|t('easy-form') }}
+                    <span class="ef-keep-hint">{{ 'Show date &amp; time fields in each submission’s site language (default is ISO for spreadsheets).'|t('easy-form') }}</span>
+                </span>
+            </label>
+
+            <label class="ef-keep-export">
                 <input type="checkbox" id="ef-export-keep">
                 <span>
                     {{ 'Save a copy on the server'|t('easy-form') }}
@@ -448,6 +456,8 @@
             if (exportBtn.dataset.dateTo) data.dateTo = exportBtn.dataset.dateTo;
             var fileFormatEl = document.getElementById('ef-export-fileformat');
             if (fileFormatEl) data.fileFormat = fileFormatEl.value;
+            var localizeDatesEl = document.getElementById('ef-export-localize-dates');
+            if (localizeDatesEl) data.localizeDates = localizeDatesEl.checked ? 1 : 0;
             // Restrict to selected sites (only when a subset is chosen).
             if (sitesList && !allSitesChecked()) {
                 var sites = selectedSites();

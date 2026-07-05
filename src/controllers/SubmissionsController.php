@@ -398,6 +398,9 @@ class SubmissionsController extends Controller
             $fileFormat = 'path';
         }
 
+        // Opt-in: format date/time field values in each row's site locale.
+        $localizeDates = (bool) Craft::$app->request->getParam('localizeDates', false);
+
         // Orphaned export: a specific deleted form is targeted by its handle
         // (heterogeneous "all deleted forms" export isn't supported — the
         // columns would be undefined across differing snapshots).
@@ -466,6 +469,7 @@ class SubmissionsController extends Controller
             'search' => $search,
             'columns' => $columns,
             'fileFormat' => $fileFormat,
+            'localizeDates' => $localizeDates,
             'token' => $token,
         ]));
 

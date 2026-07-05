@@ -33,6 +33,8 @@ class ExportSubmissions extends BaseJob
     public ?array $columns = null;
     /** @var string How file-field cells are rendered: 'path' | 'filename' | 'id'. */
     public string $fileFormat = 'path';
+    /** @var bool Format date/time field values in each row's site locale. */
+    public bool $localizeDates = false;
     public string $token = '';
 
     protected function defaultDescription(): string
@@ -62,7 +64,8 @@ class ExportSubmissions extends BaseJob
                     $this->search,
                     $this->columns,
                     $rowCount,
-                    $this->fileFormat
+                    $this->fileFormat,
+                    $this->localizeDates
                 );
             } else {
                 $form = EasyForm::getInstance()->forms->getFormById((int) $this->formId);
@@ -79,7 +82,8 @@ class ExportSubmissions extends BaseJob
                     $this->search,
                     $this->columns,
                     $rowCount,
-                    $this->fileFormat
+                    $this->fileFormat,
+                    $this->localizeDates
                 );
             }
 

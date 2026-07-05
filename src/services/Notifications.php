@@ -758,6 +758,26 @@ class Notifications extends Component
             . $rows . '</table>';
     }
 
+    /**
+     * Formats a date/datetime/time field value in the given site's locale. Falls
+     * back to the raw value if it can't be parsed.
+     */
+    private function localizeDateValue(string $value, string $type, ?string $siteHandle): string
+    {
+        return \yannkost\easyform\helpers\DateFormatter::localize($value, $type, $this->siteLocaleId($siteHandle));
+    }
+
+    private function siteLocaleId(?string $siteHandle): string
+    {
+        if ($siteHandle) {
+            $site = Craft::$app->getSites()->getSiteByHandle($siteHandle);
+            if ($site) {
+                return $site->getLocale()->id;
+            }
+        }
+        return Craft::$app->language;
+    }
+
     private function getDisplayValue($value, ?array $field, ?string $siteHandle): string
     {
         if (!$field) {
@@ -767,6 +787,11 @@ class Notifications extends Component
         }
 
         $type = $field['type'] ?? '';
+
+        // Date/time fields are shown in the submission site's locale.
+        if (in_array($type, ['date', 'datetime', 'time'], true) && is_scalar($value) && (string) $value !== '') {
+            return $this->localizeDateValue((string) $value, $type, $siteHandle);
+        }
 
         if (!in_array($type, ['select', 'checkboxes'])) {
             return $this->formatValueForEmail($value);
