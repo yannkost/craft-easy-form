@@ -26,6 +26,15 @@
   available as an optional column in submission exports.
 - Translations for all new control-panel strings across German, Dutch, French,
   Spanish, and Italian.
+- Notification email events — `EVENT_BEFORE_SEND_NOTIFICATION` (cancelable, mutate
+  message/recipients) and `EVENT_AFTER_SEND_NOTIFICATION`.
+- The notification **subject** is now translatable per site, with the default
+  subject as a fallback.
+- Date, time and date-and-time field values are shown in the relevant **site
+  locale** — always in notification emails, and in CSV export via an opt-in
+  *Localize dates* toggle.
+- CSV export: a **File columns** choice renders uploaded-file fields as their full
+  path (default), file name, or Craft asset id.
 
 ### Changed
 
@@ -47,6 +56,12 @@
   send.
 - reCAPTCHA v3 now verifies the token's action as an anti-replay measure, and
   unique-value checks work on PostgreSQL as well as MySQL.
+- Notification send failures now log exactly where they broke — the step and, for
+  a value problem, the specific field.
+- File-field values export as a comma-separated list of files rather than raw JSON.
+- Conditional-sending rules are kept when a notification is left on "Always send"
+  (previously they were dropped on save), the rule "field handle" input suggests
+  the form's fields, and Enter inside a notification input no longer saves the page.
 
 ## 1.0.0 - 2026-06-25
 
