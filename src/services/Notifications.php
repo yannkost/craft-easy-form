@@ -11,6 +11,7 @@ use craft\web\View;
 use yii\base\Component;
 use yannkost\easyform\models\Submission;
 use yannkost\easyform\models\Form;
+use yannkost\easyform\events\NotificationEvent;
 use yannkost\easyform\EasyForm;
 
 /**
@@ -18,6 +19,18 @@ use yannkost\easyform\EasyForm;
  */
 class Notifications extends Component
 {
+    /**
+     * @event NotificationEvent Fired before a notification email is sent. Mutate
+     * the message/recipients, or set `$event->isValid = false` to cancel the send.
+     */
+    public const EVENT_BEFORE_SEND_NOTIFICATION = 'beforeSendNotification';
+
+    /**
+     * @event NotificationEvent Fired after a notification email send is attempted.
+     * `$event->isSuccessful` reports whether at least one recipient was sent to.
+     */
+    public const EVENT_AFTER_SEND_NOTIFICATION = 'afterSendNotification';
+
     /**
      * Sends email notifications for a submission
      *
@@ -487,6 +500,23 @@ class Notifications extends Component
                 $this->attachSubmissionFiles($message, $form, $submission);
             }
 
+            // Let integrators rewrite the message/recipients or cancel the send.
+            if ($this->hasEventHandlers(self::EVENT_BEFORE_SEND_NOTIFICATION)) {
+                $event = new NotificationEvent([
+                    'submission' => $submission,
+                    'form' => $form instanceof Form ? $form : null,
+                    'notification' => $notification,
+                    'message' => $message,
+                    'recipients' => $parsedRecipients,
+                ]);
+                $this->trigger(self::EVENT_BEFORE_SEND_NOTIFICATION, $event);
+                if (!$event->isValid) {
+                    EasyForm::log("Notification '" . ($notification['name'] ?? 'unnamed') . "' cancelled by a before-send event handler.", 'info');
+                    return false;
+                }
+                $parsedRecipients = $event->recipients;
+            }
+
             $sentCount = 0;
             // Send to all parsed recipients
             foreach ($parsedRecipients as $email) {
@@ -509,7 +539,18 @@ class Notifications extends Component
                     EasyForm::log("Failed to send notification. [$logDetails]", 'error');
                 }
             }
-            
+
+            if ($this->hasEventHandlers(self::EVENT_AFTER_SEND_NOTIFICATION)) {
+                $this->trigger(self::EVENT_AFTER_SEND_NOTIFICATION, new NotificationEvent([
+                    'submission' => $submission,
+                    'form' => $form instanceof Form ? $form : null,
+                    'notification' => $notification,
+                    'message' => $message,
+                    'recipients' => $parsedRecipients,
+                    'isSuccessful' => $sentCount > 0,
+                ]));
+            }
+
             return $sentCount > 0;
 
         } catch (\Throwable $e) {
