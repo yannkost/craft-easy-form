@@ -369,6 +369,72 @@ class Submissions extends Component
     /**
      * Applies the shared export/delete filters (site + date range) to a query.
      */
+    /**
+     * Formats a submitted field value for a CSV cell. File-upload values are
+     * rendered as a comma-separated list of file locations instead of a raw JSON
+     * blob; other arrays keep their JSON encoding.
+     */
+    private function formatCsvValue(mixed $value): string
+    {
+        if (!is_array($value)) {
+            return (string) $value;
+        }
+
+        $files = $this->extractFileList($value);
+        if ($files !== null) {
+            return implode(', ', $files);
+        }
+
+        return \craft\helpers\Json::encode($value);
+    }
+
+    /**
+     * Pulls a list of file locations (URL, else stored path, else filename) from a
+     * file-field value, supporting both the filesystem-mode wrapper
+     * (['storage' => 'filesystem', 'files' => [...]]) and a plain list of file
+     * entries. Returns null when the value isn't a file value.
+     *
+     * @return string[]|null
+     */
+    private function extractFileList(array $value): ?array
+    {
+        $entries = null;
+        if (isset($value['files']) && is_array($value['files'])) {
+            $entries = $value['files'];
+        } elseif ($this->isFileEntryList($value)) {
+            $entries = $value;
+        }
+
+        if ($entries === null) {
+            return null;
+        }
+
+        $out = [];
+        foreach ($entries as $f) {
+            if (is_array($f)) {
+                $loc = $f['url'] ?? $f['path'] ?? $f['filename'] ?? null;
+                if ($loc !== null && $loc !== '') {
+                    $out[] = (string) $loc;
+                }
+            }
+        }
+        return $out;
+    }
+
+    private function isFileEntryList(array $value): bool
+    {
+        if ($value === [] || array_keys($value) !== range(0, count($value) - 1)) {
+            return false;
+        }
+        foreach ($value as $item) {
+            if (!is_array($item)
+                || !(isset($item['path']) || isset($item['url']) || isset($item['filename']))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private function applyExportFilters(
         \yii\db\ActiveQuery $query,
         int|array|null $siteIds,
@@ -864,7 +930,7 @@ class Submissions extends Component
                     $key = $d['key'];
                     if (strncmp($key, 'field:', 6) === 0) {
                         $value = $flat[substr($key, 6)] ?? '';
-                        $line[] = is_array($value) ? Json::encode($value) : $value;
+                        $line[] = $this->formatCsvValue($value);
                     } elseif ($key === 'extra') {
                         $extra = array_diff_key($flat, array_flip($knownHandles));
                         $line[] = !empty($extra) ? Json::encode($extra) : '';

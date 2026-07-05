@@ -65,6 +65,17 @@ export function setupNotifications() {
         notificationIndex++;
     });
 
+    // Enter inside a notification text input would submit the whole CP form.
+    // Swallow it so editing a rule/recipient/subject field never saves the page.
+    container.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter'
+            && e.target.tagName === 'INPUT'
+            && e.target.type !== 'submit'
+            && e.target.type !== 'button') {
+            e.preventDefault();
+        }
+    });
+
     // Event delegation for delete and toggle
     container.addEventListener('click', function(e) {
         const target = e.target;

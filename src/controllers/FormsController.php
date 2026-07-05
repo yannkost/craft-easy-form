@@ -1217,12 +1217,21 @@ class FormsController extends Controller
             return null;
         }
 
-        $action = $raw['action'] ?? '';
-        if ($action !== 'show' && $action !== 'hide') {
+        $conditions = $this->buildConditions($raw);
+
+        // No rules filled in → nothing to remember.
+        if (empty($conditions['rules'])) {
             return null;
         }
 
-        $conditions = $this->buildConditions($raw);
-        return empty($conditions['rules']) ? null : $conditions;
+        // "Always send" (empty action) is a valid choice: keep the rules the user
+        // entered so they don't vanish on save, but leave them inactive until an
+        // action is chosen. shouldSend() treats an empty action as "always send".
+        $rawAction = $raw['action'] ?? '';
+        if ($rawAction !== 'show' && $rawAction !== 'hide') {
+            $conditions['action'] = '';
+        }
+
+        return $conditions;
     }
 }
